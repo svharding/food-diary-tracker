@@ -1,0 +1,21 @@
+Fetched 2026-11-07
+Rows scanned: 4,899,177
+Tagged Canada: 130,245
+Kept (complete core label data, deduplicated): 98,227
+
+Median per 100 g among products with a value (sanity check units):
+  energy  median=262.5  values for 98,227 products (100%)
+  protein median=5.5556  values for 98,227 products (100%)
+  fat     median=5.6  values for 98,227 products (100%)
+  sfa     median=1.25  values for 91,203 products (93%)
+  carb    median=21.4286  values for 98,227 products (100%)
+  sugars  median=4.0  values for 93,823 products (96%)
+  fibre   median=1.6  values for 71,311 products (73%)
+  chol    median=0.0  values for 43,394 products (44%)
+  na      median=233.3333  values for 88,101 products (90%)
+  k       median=185.12995  values for 42,690 products (43%)
+  ca      median=37.7358  values for 42,520 products (43%)
+  fe      median=1.1905  values for 44,551 products (45%)
+  vita    median=0.0  values for 8,959 products (9%)
+  vitd    median=0.0073  values for 7,011 products (7%)
+  vitc    median=0.2487  values for 9,346 products (10%)
