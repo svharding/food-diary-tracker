@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Diary Nutrient Tracker</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f5f5f3;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #dcdbd6;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #75746f;
+  --accent: #2a78d6;
+  --accent-ink: #1c5cab;
+  --s1: #2a78d6; /* protein */
+  --s2: #eb6834; /* carbohydrate */
+  --s3: #1baf7a; /* fat */
+  --s4: #eda100; /* alcohol */
+  --good: #0ca30c;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  --good-ink: #006300;
+  --crit-ink: #a52a2a;
+  --warn-ink: #8a5a00;
+  --banner: #fff4d6;
+  --banner-border: #e8c46a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #262624;
+    --border: #383835;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-3: #9a998f;
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --good-ink: #6fd46f;
+    --crit-ink: #f08a8a;
+    --warn-ink: #f5c35a;
+    --banner: #3a2f10;
+    --banner-border: #7a6220;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+}
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+header.top h1 { font-size: 1.35rem; margin: 0; }
+header.top .src { color: var(--text-3); font-size: 0.82rem; }
+.banner { background: var(--banner); border: 1px solid var(--banner-border); border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px; font-size: 0.9rem; }
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 8px 0 16px; overflow-x: auto; }
+nav.tabs button { background: none; border: none; border-bottom: 3px solid transparent; padding: 10px 14px; cursor: pointer; color: var(--text-2); font-weight: 600; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+.card h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.card h3 { font-size: 0.95rem; margin: 14px 0 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--text-2); }
+input[type=text], input[type=number], input[type=search], select {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; min-height: 40px;
+}
+input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.btn { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; min-height: 40px; cursor: pointer; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.small { min-height: 32px; padding: 4px 10px; font-size: 0.85rem; }
+.btn.link { background: none; border: none; color: var(--accent-ink); padding: 4px 6px; min-height: auto; text-decoration: underline; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.muted { color: var(--text-3); }
+.small { font-size: 0.85rem; }
+.daytabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.daytabs button { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-weight: 600; }
+.daytabs button[aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.daytabs .kc { font-weight: 400; opacity: 0.85; margin-left: 4px; font-size: 0.82rem; }
+.search-box { position: relative; }
+.search-box label.f { display: block; margin-bottom: 4px; }
+.search-box input { width: 100%; }
+.results { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--border); border-radius: 6px; max-height: 300px; overflow-y: auto; background: var(--surface); }
+.results li { padding: 8px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.results li:last-child { border-bottom: none; }
+.results li:hover, .results li.active { background: var(--surface-2); }
+.results li .grp { color: var(--text-3); font-size: 0.8rem; }
+.picker { margin-top: 10px; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; }
+.picker .name { font-weight: 600; margin-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { color: var(--text-2); font-weight: 600; font-size: 0.82rem; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.meal-h td { background: var(--surface-2); font-weight: 600; font-size: 0.82rem; color: var(--text-2); }
+.tablewrap { overflow-x: auto; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+.stat .v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 0.8rem; color: var(--text-2); }
+.macrobar { display: flex; height: 26px; border-radius: 4px; overflow: hidden; gap: 2px; background: var(--surface); margin: 6px 0; }
+.macrobar div { height: 100%; position: relative; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.85rem; color: var(--text-2); }
+.legend span.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.pbar { position: relative; height: 10px; background: var(--surface-2); border-radius: 0 4px 4px 0; min-width: 60px; flex: 1; }
+.pbar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; background: var(--accent); }
+.pbar .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text-2); }
+.status { white-space: nowrap; font-size: 0.82rem; font-weight: 600; }
+.status .ic { display: inline-block; width: 1.2em; text-align: center; }
+.st-good { color: var(--good-ink); }
+.st-warn { color: var(--warn-ink); }
+.st-crit { color: var(--crit-ink); }
+.st-neutral { color: var(--text-2); }
+.cov-low { color: var(--warn-ink); font-weight: 600; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--surface-2); }
+tr.sel td { background: var(--surface-2); }
+.sources { margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.warn-list { margin: 0; padding-left: 18px; }
+.warn-list li { margin: 3px 0; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.9rem; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.hidden { display: none !important; }
+.about p, .about li { max-width: 72ch; }
+.tooltip { position: fixed; pointer-events: none; background: var(--text); color: var(--bg); font-size: 0.8rem; padding: 5px 8px; border-radius: 4px; z-index: 10; display: none; }
+@media (max-width: 640px) {
+  .wrap { padding: 10px; }
+  .hide-sm { display: none; }
+  th, td { padding: 6px 4px; }
+  table { font-size: 0.82rem; }
+  .status { white-space: normal; font-size: 0.75rem; }
+  .pbar { min-width: 44px; }
+}
+@media print {
+  body { background: #fff; color: #000; }
+  nav.tabs, .no-print, .banner .no-print { display: none !important; }
+  .card { border: 1px solid #bbb; break-inside: avoid; }
+  #view-diary, #view-about { display: none !important; }
+  #view-results { display: block !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Food Diary Nutrient Tracker</h1>
+    <span class="src" id="srcLine"></span>
+  </header>
+  <div class="banner hidden" id="demoBanner">
+    <strong>Demo mode: placeholder values.</strong> This preview uses 18 hand-entered sample foods with approximate values so you can test the layout.
+    They are <strong>not</strong> Canadian Nutrient File data. Do not use these numbers for teaching or assessment.
+  </div>
+  <div class="banner" id="privacyNote">
+    Your diary stays on this device. Nothing is sent to a server. Use <strong>Save diary file</strong> to keep a copy or move to another device.
+  </div>
+
+  <nav class="tabs no-print" role="tablist">
+    <button role="tab" data-view="diary" aria-selected="true">1. Food diary</button>
+    <button role="tab" data-view="results" aria-selected="false">2. Results</button>
+    <button role="tab" data-view="about" aria-selected="false">How to read this</button>
+  </nav>
+
+  <!-- ============ DIARY ============ -->
+  <section id="view-diary">
+    <div class="card">
+      <h2>Set up</h2>
+      <div class="row">
+        <label class="f">Name or ID (optional)
+          <input type="text" id="setLabel" placeholder="e.g. student number" maxlength="60">
+        </label>
+        <label class="f">Reference group (for DRIs)
+          <select id="setGroup">
+            <option value="F1930">Female, 19–30 y</option>
+            <option value="F3150">Female, 31–50 y</option>
+            <option value="M1930">Male, 19–30 y</option>
+            <option value="M3150">Male, 31–50 y</option>
+          </select>
+        </label>
+        <label class="f">Number of days
+          <select id="setDays">
+            <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+          </select>
+        </label>
+        <label class="f">Body weight, kg (optional)
+          <input type="number" id="setWeight" min="30" max="250" step="0.1" placeholder="for protein g/kg" style="width:150px">
+        </label>
+      </div>
+      <p class="small muted" style="margin:8px 0 0">Pregnancy, lactation and other ages are not included in this version.</p>
+    </div>
+
+    <div class="card">
+      <div class="daytabs" id="dayTabs" role="tablist"></div>
+      <div class="search-box">
+        <label class="f" for="search">Add a food to <span id="dayLabel">Day 1</span></label>
+        <input type="search" id="search" placeholder="Search foods, e.g. milk 2%, apple, cheddar" autocomplete="off">
+        <ul class="results hidden" id="results" role="listbox"></ul>
+      </div>
+      <div class="picker hidden" id="picker">
+        <div class="name" id="pickName"></div>
+        <div class="row">
+          <label class="f">Amount
+            <input type="number" id="pickQty" min="0" step="any" value="1" style="width:90px">
+          </label>
+          <label class="f">Measure
+            <select id="pickMeasure"></select>
+          </label>
+          <label class="f">Meal
+            <select id="pickMeal">
+              <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
+            </select>
+          </label>
+          <button class="btn primary" id="pickAdd">Add</button>
+          <button class="btn" id="pickCancel">Cancel</button>
+        </div>
+        <div class="small muted" id="pickPreview" style="margin-top:6px"></div>
+      </div>
+
+      <h3 id="entriesTitle">Foods for Day 1</h3>
+      <div class="tablewrap">
+        <table id="entries">
+          <thead><tr><th>Food</th><th class="num">Amount</th><th class="num">g</th><th class="num">kcal</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small" id="noEntries">No foods yet. Search above to add one.</p>
+    </div>
+
+    <div class="card no-print">
+      <h2>Your file</h2>
+      <div class="row">
+        <button class="btn" id="saveFile">Save diary file</button>
+        <button class="btn" id="openFileBtn">Open diary file</button>
+        <input type="file" id="openFile" accept=".json,application/json" class="hidden">
+        <button class="btn" id="clearAll">Clear everything</button>
+        <button class="btn primary" id="goResults">See results →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="view-results" class="hidden">
+    <div class="card" id="resHeader"></div>
+    <div class="card" id="resWarnings"></div>
+
+    <div class="card">
+      <h2>Energy</h2>
+      <div class="stats" id="energyStats"></div>
+    </div>
+
+    <div class="card">
+      <h2>Where your energy comes from</h2>
+      <div class="legend" id="macroLegend"></div>
+      <div class="macrobar" id="macroBar" role="img"></div>
+      <div class="tablewrap">
+        <table id="macroTable">
+          <thead><tr><th>Source</th><th class="num hide-sm">g/day</th><th class="num">% of energy</th><th class="num">AMDR</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="small muted" id="macroNote"></p>
+    </div>
+
+    <div class="card">
+      <h2>Nutrients: average per day vs reference values</h2>
+      <p class="small muted" style="margin-top:0">Bar = % of the RDA or AI (the tick marks 100%). Tap a row to see which foods supplied that nutrient.</p>
+      <div class="tablewrap">
+        <table id="nutTable">
+          <thead><tr>
+            <th>Nutrient</th><th class="num">Avg/day</th><th class="num hide-sm">EAR</th><th class="num hide-sm">RDA/AI</th>
+            <th style="min-width:90px">% of RDA/AI</th><th class="num hide-sm">UL</th><th>Status</th><th class="num hide-sm">Data coverage</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="small muted">* UL applies only to supplements, fortified/synthetic forms or preformed vitamin A, so food totals are not flagged against it. On small screens, turn your phone sideways to see EAR, RDA/AI, UL and data coverage columns.</p>
+      <div id="sourcesPanel" class="sources hidden"></div>
+    </div>
+
+    <div class="card">
+      <h2>Day to day</h2>
+      <p class="small muted" style="margin-top:0">Intake varies from day to day. A few days is a snapshot, not your usual intake.</p>
+      <div class="tablewrap"><table id="dayTable"></table></div>
+    </div>
+
+    <div class="card no-print">
+      <div class="row">
+        <button class="btn" id="dlCsv">Download results (CSV)</button>
+        <button class="btn" id="printBtn">Print / save as PDF</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ABOUT ============ -->
+  <section id="view-about" class="hidden about">
+    <div class="card">
+      <h2>How to read your results</h2>
+      <h3>The reference values</h3>
+      <ul>
+        <li><strong>EAR</strong> (Estimated Average Requirement): meets the needs of half of healthy people in your group.</li>
+        <li><strong>RDA</strong> (Recommended Dietary Allowance): meets the needs of nearly all (97–98%) healthy people in your group.</li>
+        <li><strong>AI</strong> (Adequate Intake): used when there is not enough evidence to set an RDA. If you are at or above the AI, your intake is probably adequate. If you are below it, no conclusion can be drawn.</li>
+        <li><strong>UL</strong> (Tolerable Upper Intake Level): the highest usual intake unlikely to cause harm. For some nutrients (magnesium, folic acid, niacin, vitamin E, preformed vitamin A) the UL applies only to supplements, fortified forms or preformed vitamin A, so food totals are not compared to it here.</li>
+        <li><strong>CDRR</strong> (Chronic Disease Risk Reduction intake): for sodium, reducing intake above 2,300 mg/day is expected to lower chronic disease risk.</li>
+        <li><strong>AMDR</strong> (Acceptable Macronutrient Distribution Range): the range of energy from protein, carbohydrate and fat linked to lower chronic disease risk with adequate nutrients.</li>
+      </ul>
+      <h3>What 3–5 days can and cannot tell you</h3>
+      <ul>
+        <li>DRIs refer to <em>usual</em> intake over a long period. A few days of records will not match usual intake, especially for nutrients concentrated in a few foods (e.g., vitamin A, vitamin D, B12).</li>
+        <li>Being below the RDA does not mean you are deficient. Being below the EAR on usual intake means inadequacy is more likely. Diagnosing deficiency needs clinical and biochemical data.</li>
+        <li>Records are affected by under-reporting, portion estimation errors and changing what you eat because you are recording it.</li>
+        <li>Supplements are not included.</li>
+      </ul>
+      <h3>About the food data</h3>
+      <ul>
+        <li>Nutrient values come from Health Canada's Canadian Nutrient File (CNF), per 100 g of edible portion, scaled by the measure you choose.</li>
+        <li>CNF foods are mostly generic. Pick the closest match, or enter a mixed dish as its main ingredients.</li>
+        <li><strong>Data coverage</strong> shows how much of your food (by weight) has a value for that nutrient. A blank in the database is not a zero. Low coverage means the total is probably an underestimate.</li>
+        <li>Energy is the CNF energy value (kcal). The energy split uses 4 kcal/g for protein and carbohydrate, 9 for fat and 7 for alcohol, and is scaled to 100%.</li>
+        <li>Total sugars include sugars naturally in foods. The CNF does not report added sugars.</li>
+      </ul>
+      <h3>Sources</h3>
+      <ul class="small">
+        <li>Health Canada. Canadian Nutrient File. Open Government Licence – Canada.</li>
+        <li>Health Canada. Dietary Reference Intakes tables: reference values for vitamins, elements and macronutrients.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<div class="tooltip" id="tooltip"></div>
+
+<script id="cnf-data" type="application/json">{"meta":{"demo":true,"source":"PLACEHOLDER demo values (approximate, hand-entered). NOT Canadian Nutrient File data.","version":"demo","built":"2026-11-07"},"nutrients":["energy","protein","fat","sfa","carb","sugars","fibre","alcohol","chol","ala","na","k","ca","fe","mg","zn","p","vita","vitd","vite","vitk","vitc","thia","ribo","nia","b6","fol","b12"],"foods":[[1,"Apple, raw, with skin [DEMO]","Fruits",[52,0.3,0.2,0.03,13.8,10.4,2.4,0,0,0.01,1,107,6,0.12,5,0.04,11,3,0,0.18,2.2,4.6,0.017,0.026,0.1,0.041,3,0],[["1 medium",182],["250 mL, sliced",116]]],[2,"Milk, partly skimmed, 2% M.F. [DEMO]","Dairy",[50,3.3,2,1.2,4.8,5,0,0,8,0.01,44,150,120,0.02,11,0.4,92,58,1.0,0.03,0.2,0,0.04,0.17,0.9,0.04,5,0.5],[["250 mL",258],["125 mL",129]]],[3,"Bread, whole wheat [DEMO]","Baked products",[250,12,3.5,0.7,43,5,6,0,0,0.1,450,250,160,2.5,75,1.8,210,0,0,0.4,7,0,0.4,0.15,7,0.2,50,0],[["1 slice",35]]],[4,"Egg, whole, hard-boiled [DEMO]","Eggs",[155,12.6,10.6,3.3,1.1,1.1,0,0,373,0.04,124,126,50,1.2,10,1.05,172,149,2.2,1.0,0.3,0,0.07,0.51,3.3,0.12,44,1.1],[["1 large",50]]],[5,"Chicken breast, roasted, meat only [DEMO]","Poultry",[165,31,3.6,1.0,0,0,0,0,85,0.02,74,256,15,1.0,29,1.0,228,6,0.1,0.27,0.3,0,0.07,0.11,19,0.6,4,0.34],[["1/2 breast",86]]],[6,"Rice, white, long-grain, cooked [DEMO]","Cereal grains",[130,2.7,0.3,0.08,28,0.05,0.4,0,0,null,1,35,10,0.2,12,0.5,43,0,0,0.04,null,0,0.02,0.01,1.0,0.09,3,0],[["250 mL",195]]],[7,"Peanut butter, smooth [DEMO]","Legumes",[590,24,50,10,20,9,6,0,0,0.0,430,560,45,1.7,160,2.7,340,0,0,9,0.3,0,0.08,0.1,18,0.4,90,0],[["1 tbsp",16],["2 tbsp",32]]],[8,"Banana, raw [DEMO]","Fruits",[89,1.1,0.3,0.11,22.8,12.2,2.6,0,0,0.03,1,358,5,0.26,27,0.15,22,3,0,0.1,0.5,8.7,0.03,0.07,0.9,0.37,20,0],[["1 medium",118]]],[9,"Broccoli, boiled, drained [DEMO]","Vegetables",[35,2.4,0.4,0.08,7.2,1.4,3.3,0,0,0.1,41,293,40,0.67,21,0.45,67,77,0,1.45,141,64.9,0.06,0.12,1.0,0.2,108,0],[["125 mL, chopped",82]]],[10,"Cheese, cheddar [DEMO]","Dairy",[403,25,33,21,1.3,0.5,0,0,105,0.2,620,98,720,0.7,28,3.1,512,265,0.6,0.7,2.8,0,0.03,0.38,6,0.07,18,0.8],[["1 slice",21],["50 g",50]]],[11,"Salmon, Atlantic, farmed, baked [DEMO]","Fish",[206,22,12,2.5,0,0,0,0,63,0.11,61,384,15,0.34,30,0.43,252,13,11,null,null,3.7,0.06,0.13,12,0.65,34,2.8],[["75 g",75]]],[12,"Coffee, brewed [DEMO]","Beverages",[2,0.3,0,0,0,0,0,0,0,0,2,49,2,0.01,3,0.02,3,0,0,0,0.1,0,0.01,0.08,0.2,0,2,0],[["250 mL",250]]],[13,"Pizza, cheese, frozen, baked [DEMO]","Mixed dishes",[270,11,11,4.5,32,3.5,2,0,15,null,580,180,190,2.5,22,1.3,200,60,null,null,null,1,0.4,0.3,5,0.1,80,0.5],[["1 slice",100]]],[14,"Beer, regular [DEMO]","Beverages",[43,0.5,0,0,3.6,0,0,3.9,0,0,4,27,4,0.02,6,0.01,14,0,0,0,0,0,0.005,0.025,0.5,0.046,6,0.02],[["355 mL can",356]]],[15,"Orange juice, from frozen concentrate [DEMO]","Beverages",[45,0.7,0.1,0.01,10.8,8.4,0.2,0,0,0.01,1,190,10,0.1,10,0.05,16,4,0,0.04,0,40,0.08,0.02,0.3,0.04,40,0],[["250 mL",263]]],[16,"Oatmeal, cooked with water [DEMO]","Cereal grains",[71,2.5,1.5,0.3,12,0.3,1.7,0,0,null,4,70,9,0.9,27,0.65,77,0,0,0.08,0.3,0,0.08,0.02,0.6,0.01,6,0],[["250 mL",247]]],[17,"Lentils, boiled [DEMO]","Legumes",[116,9,0.4,0.05,20,1.8,7.9,0,0,0.04,2,369,19,3.3,36,1.27,180,0,0,0.11,1.7,1.5,0.17,0.07,2,0.18,181,0],[["125 mL",104]]],[18,"Water, tap [DEMO]","Beverages",[0,0,0,0,0,0,0,0,0,0,4,0,3,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],[["250 mL",250]]]]}</script>
+<script>
+"use strict";
+/* ================= Nutrient definitions (order must match data arrays) ================= */
+const NUTRIENTS = [
+  {k:'energy', name:'Energy', unit:'kcal', dp:0},
+  {k:'protein', name:'Protein', unit:'g', dp:1},
+  {k:'fat', name:'Total fat', unit:'g', dp:1},
+  {k:'sfa', name:'Saturated fat', unit:'g', dp:1},
+  {k:'carb', name:'Carbohydrate', unit:'g', dp:1},
+  {k:'sugars', name:'Total sugars', unit:'g', dp:1},
+  {k:'fibre', name:'Fibre', unit:'g', dp:1},
+  {k:'alcohol', name:'Alcohol', unit:'g', dp:1},
+  {k:'chol', name:'Cholesterol', unit:'mg', dp:0},
+  {k:'ala', name:'Alpha-linolenic acid (n-3)', unit:'g', dp:2},
+  {k:'na', name:'Sodium', unit:'mg', dp:0},
+  {k:'k', name:'Potassium', unit:'mg', dp:0},
+  {k:'ca', name:'Calcium', unit:'mg', dp:0},
+  {k:'fe', name:'Iron', unit:'mg', dp:1},
+  {k:'mg', name:'Magnesium', unit:'mg', dp:0},
+  {k:'zn', name:'Zinc', unit:'mg', dp:1},
+  {k:'p', name:'Phosphorus', unit:'mg', dp:0},
+  {k:'vita', name:'Vitamin A', unit:'µg RAE', dp:0},
+  {k:'vitd', name:'Vitamin D', unit:'µg', dp:1},
+  {k:'vite', name:'Vitamin E (alpha-tocopherol)', unit:'mg', dp:1},
+  {k:'vitk', name:'Vitamin K', unit:'µg', dp:0},
+  {k:'vitc', name:'Vitamin C', unit:'mg', dp:0},
+  {k:'thia', name:'Thiamin', unit:'mg', dp:2},
+  {k:'ribo', name:'Riboflavin', unit:'mg', dp:2},
+  {k:'nia', name:'Niacin', unit:'mg NE', dp:1},
+  {k:'b6', name:'Vitamin B6', unit:'mg', dp:2},
+  {k:'fol', name:'Folate', unit:'µg DFE', dp:0},
+  {k:'b12', name:'Vitamin B12', unit:'µg', dp:1}
+];
+const NIDX = Object.fromEntries(NUTRIENTS.map((n,i)=>[n.k,i]));
+
+/* ================= DRIs (Health Canada DRI tables; adults, non-pregnant) =================
+   Values identical for 19–30 and 31–50 except magnesium. sex: M/F. */
+const GROUP_LABEL = {F1930:'Female, 19–30 y', F3150:'Female, 31–50 y', M1930:'Male, 19–30 y', M3150:'Male, 31–50 y'};
+function dri(k, g, weight) {
+  const M = g[0] === 'M';
+  const young = g.endsWith('1930');
+  const S = (m, f) => M ? m : f;
+  switch (k) {
+    case 'protein': {
+      if (weight > 0) return {ear: +(0.66*weight).toFixed(1), ref: +(0.8*weight).toFixed(1), type:'RDA', note:'0.80 g/kg × your weight'};
+      return {ear: S(46.2, 38.0), ref: S(56, 46), type:'RDA', note:'Uses reference body weight; enter your weight for a personal value'};
+    }
+    case 'carb': return {ear:100, ref:130, type:'RDA', note:'Minimum to supply glucose to the brain; most people eat much more'};
+    case 'fibre': return {ref:S(38,25), type:'AI'};
+    case 'ala': return {ref:S(1.6,1.1), type:'AI'};
+    case 'na': return {ref:1500, type:'AI', cdrr:2300};
+    case 'k': return {ref:S(3400,2600), type:'AI'};
+    case 'ca': return {ear:800, ref:1000, type:'RDA', ul:2500};
+    case 'fe': return {ear:S(6,8.1), ref:S(8,18), type:'RDA', ul:45};
+    case 'mg': return {ear: M ? (young?330:350) : (young?255:265), ref: M ? (young?400:420) : (young?310:320), type:'RDA', ul:350, ulFood:false, ulNote:'UL applies to supplements only'};
+    case 'zn': return {ear:S(9.4,6.8), ref:S(11,8), type:'RDA', ul:40};
+    case 'p': return {ear:580, ref:700, type:'RDA', ul:4000};
+    case 'vita': return {ear:S(625,500), ref:S(900,700), type:'RDA', ul:3000, ulFood:false, ulNote:'UL applies to preformed vitamin A only; the total here includes carotenoids'};
+    case 'vitd': return {ear:10, ref:15, type:'RDA', ul:100};
+    case 'vite': return {ear:12, ref:15, type:'RDA', ul:1000, ulFood:false, ulNote:'UL applies to synthetic vitamin E only'};
+    case 'vitk': return {ref:S(120,90), type:'AI'};
+    case 'vitc': return {ear:S(75,60), ref:S(90,75), type:'RDA', ul:2000};
+    case 'thia': return {ear:S(1.0,0.9), ref:S(1.2,1.1), type:'RDA'};
+    case 'ribo': return {ear:S(1.1,0.9), ref:S(1.3,1.1), type:'RDA'};
+    case 'nia': return {ear:S(12,11), ref:S(16,14), type:'RDA', ul:35, ulFood:false, ulNote:'UL applies to synthetic niacin only'};
+    case 'b6': return {ear:1.1, ref:1.3, type:'RDA', ul:100};
+    case 'fol': return {ear:320, ref:400, type:'RDA', ul:1000, ulFood:false, ulNote:'UL applies to folic acid only'};
+    case 'b12': return {ear:2.0, ref:2.4, type:'RDA'};
+    case 'sfa': return {text:'As low as possible within an adequate diet'};
+    case 'chol': return {text:'As low as possible within an adequate diet'};
+    case 'sugars': return {text:'No DRI for total sugars'};
+    case 'alcohol': return {text:'No DRI'};
+    default: return {};
+  }
+}
+const AMDR = {protein:[10,35], carb:[45,65], fat:[20,35]};
+
+/* ================= Data ================= */
+let DATA;
+try { DATA = JSON.parse(document.getElementById('cnf-data').textContent); }
+catch (e) { DATA = {meta:{source:'No data loaded', demo:true}, nutrients:[], foods:[]}; }
+// Re-map value arrays to app nutrient order if the data declares its own key order
+const FOODS = new Map();
+(function prepFoods(){
+  const keys = (DATA.nutrients && DATA.nutrients.length) ? DATA.nutrients : NUTRIENTS.map(n=>n.k);
+  const map = NUTRIENTS.map(n => keys.indexOf(n.k));
+  for (const f of DATA.foods) {
+    const [id, name, group, vals, measures, alt] = f;
+    const v = map.map(j => (j < 0 || vals[j] === null || vals[j] === undefined) ? null : +vals[j]);
+    const search = (name + ' ' + (alt || '')).toLowerCase();
+    FOODS.set(id, {id, name, group: group || '', v, measures: measures || [], search});
+  }
+})();
+const FOOD_LIST = [...FOODS.values()];
+
+document.getElementById('srcLine').textContent =
+  (DATA.meta.demo ? 'Data: DEMO placeholder values' : 'Data: ' + DATA.meta.source + (DATA.meta.version ? ' (' + DATA.meta.version + ')' : '')) +
+  ' · ' + FOOD_LIST.length.toLocaleString() + ' foods';
+if (DATA.meta.demo) document.getElementById('demoBanner').classList.remove('hidden');
+
+/* ================= State ================= */
+const STORE_KEY = 'nutrient-tracker-diary-v1';
+const MEALS = ['Breakfast','Lunch','Dinner','Snack'];
+let state = {label:'', group:'F1930', ndays:3, weight:null, days:[[],[],[],[],[]], dataVersion: DATA.meta.version || ''};
+let curDay = 0;
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable; diary file still works */ }
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (s && Array.isArray(s.days)) applyLoaded(s);
+  } catch (e) { /* ignore */ }
+}
+function applyLoaded(s) {
+  state = Object.assign({label:'', group:'F1930', ndays:3, weight:null, days:[]}, s);
+  while (state.days.length < 5) state.days.push([]);
+  state.days = state.days.slice(0,5).map(d => (d||[]).filter(e => e && FOODS.has(e.fid) && e.g > 0));
+  if (!GROUP_LABEL[state.group]) state.group = 'F1930';
+  state.ndays = Math.min(5, Math.max(3, +state.ndays || 3));
+}
+
+/* ================= Helpers ================= */
+const $ = id => document.getElementById(id);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k,v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v);
+  }
+  for (const c of kids) if (c !== null && c !== undefined) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+function fmt(x, dp) {
+  if (x === null || x === undefined || isNaN(x)) return '–';
+  return Number(x).toLocaleString(undefined, {minimumFractionDigits: dp, maximumFractionDigits: dp});
+}
+function fmtQty(q) { return Number(q).toLocaleString(undefined, {maximumFractionDigits: 2}); }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 1800); }
+function entryNutrient(e, i) { const f = FOODS.get(e.fid); const v = f.v[i]; return v === null ? null : v * e.g / 100; }
+
+/* ================= Tabs ================= */
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showView(b.dataset.view)));
+function showView(v) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.view === v ? 'true' : 'false'));
+  for (const s of ['diary','results','about']) $('view-' + s).classList.toggle('hidden', s !== v);
+  if (v === 'results') renderResults();
+  window.scrollTo({top: 0});
+}
+
+/* ================= Setup ================= */
+function renderSetup() {
+  $('setLabel').value = state.label || '';
+  $('setGroup').value = state.group;
+  $('setDays').value = String(state.ndays);
+  $('setWeight').value = state.weight || '';
+}
+$('setLabel').addEventListener('input', e => { state.label = e.target.value; save(); });
+$('setGroup').addEventListener('change', e => { state.group = e.target.value; save(); });
+$('setWeight').addEventListener('input', e => { const w = parseFloat(e.target.value); state.weight = (w >= 30 && w <= 250) ? w : null; save(); });
+$('setDays').addEventListener('change', e => {
+  const n = +e.target.value;
+  const lost = state.days.slice(n).reduce((a,d)=>a+d.length, 0);
+  if (lost && !confirmInline(`Days ${n+1}–${state.ndays} have ${lost} food(s). They will be hidden (not deleted) until you add those days back.`)) { e.target.value = state.ndays; return; }
+  state.ndays = n; if (curDay >= n) curDay = n - 1; save(); renderDiary();
+});
+function confirmInline(msg) { toast(msg); return true; }
+
+/* ================= Diary ================= */
+function dayKcal(d) { return state.days[d].reduce((a,e)=>a + (entryNutrient(e, NIDX.energy) || 0), 0); }
+function renderDayTabs() {
+  const box = $('dayTabs'); box.textContent = '';
+  for (let d = 0; d < state.ndays; d++) {
+    const n = state.days[d].length;
+    box.append(el('button', {role:'tab', 'aria-selected': d === curDay ? 'true' : 'false', onclick: () => { curDay = d; closePicker(); renderDiary(); }},
+      'Day ' + (d+1), el('span', {class:'kc', text: n ? '· ' + fmt(dayKcal(d),0) + ' kcal' : '· empty'})));
+  }
+}
+function renderEntries() {
+  $('dayLabel').textContent = 'Day ' + (curDay+1);
+  $('entriesTitle').textContent = 'Foods for Day ' + (curDay+1);
+  const tb = $('entries').querySelector('tbody'); tb.textContent = '';
+  const list = state.days[curDay];
+  $('noEntries').classList.toggle('hidden', list.length > 0);
+  $('entries').classList.toggle('hidden', list.length === 0);
+  for (const meal of MEALS) {
+    const items = list.map((e,i)=>[e,i]).filter(([e]) => e.meal === meal);
+    if (!items.length) continue;
+    tb.append(el('tr', {class:'meal-h'}, el('td', {colspan:5, text: meal})));
+    for (const [e, i] of items) {
+      const f = FOODS.get(e.fid);
+      tb.append(el('tr', null,
+        el('td', {text: f.name}),
+        el('td', {class:'num', text: fmtQty(e.qty) + ' × ' + e.mname}),
+        el('td', {class:'num', text: fmt(e.g, 0)}),
+        el('td', {class:'num', text: fmt(entryNutrient(e, NIDX.energy), 0)}),
+        el('td', {class:'num'}, el('button', {class:'btn small', 'aria-label':'Remove ' + f.name, onclick: () => { state.days[curDay].splice(i,1); save(); renderDiary(); }}, 'Remove'))
+      ));
+    }
+  }
+  if (list.length) {
+    tb.append(el('tr', null, el('td', {colspan:3}, el('strong', null, 'Day total')), el('td', {class:'num'}, el('strong', null, fmt(dayKcal(curDay),0))), el('td')));
+  }
+}
+function renderDiary() { renderDayTabs(); renderEntries(); }
+
+/* ---- search ---- */
+let searchHits = [], activeHit = -1, picked = null;
+function searchFoods(q) {
+  const toks = q.toLowerCase().replace(/[,()]/g,' ').split(/\s+/).filter(Boolean);
+  if (!toks.length) return [];
+  const out = [];
+  for (const f of FOOD_LIST) {
+    let ok = true;
+    for (const t of toks) if (!f.search.includes(t)) { ok = false; break; }
+    if (!ok) continue;
+    const nm = f.name.toLowerCase();
+    let score = nm.length;
+    if (nm.startsWith(toks[0])) score -= 200;
+    else if (new RegExp('\\b' + toks[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(nm)) score -= 100;
+    if (/\braw\b/.test(nm)) score -= 5;
+    out.push([score, f]);
+  }
+  out.sort((a,b)=>a[0]-b[0]);
+  return out.slice(0, 40).map(x=>x[1]);
+}
+$('search').addEventListener('input', e => {
+  const q = e.target.value.trim();
+  const ul = $('results'); ul.textContent = '';
+  activeHit = -1;
+  if (q.length < 2) { ul.classList.add('hidden'); return; }
+  searchHits = searchFoods(q);
+  if (!searchHits.length) {
+    ul.append(el('li', {class:'muted'}, 'No match. Try fewer or simpler words (e.g. "yogurt plain").'));
+  }
+  searchHits.forEach((f, i) => ul.append(el('li', {role:'option', onclick: () => pickFood(f)}, f.name, ' ', el('span', {class:'grp', text: f.group ? '· ' + f.group : ''}))));
+  ul.classList.remove('hidden');
+});
+$('search').addEventListener('keydown', e => {
+  const items = $('results').querySelectorAll('li[role=option]');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') { activeHit = Math.min(items.length-1, activeHit+1); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { activeHit = Math.max(0, activeHit-1); e.preventDefault(); }
+  else if (e.key === 'Enter' && activeHit >= 0) { pickFood(searchHits[activeHit]); e.preventDefault(); return; }
+  else return;
+  items.forEach((li,i)=>li.classList.toggle('active', i === activeHit));
+  items[activeHit] && items[activeHit].scrollIntoView({block:'nearest'});
+});
+function defaultMeal() {
+  const h = new Date().getHours();
+  return h < 10 ? 'Breakfast' : h < 15 ? 'Lunch' : h < 21 ? 'Dinner' : 'Snack';
+}
+function pickFood(f) {
+  picked = f;
+  $('results').classList.add('hidden');
+  $('pickName').textContent = f.name;
+  const sel = $('pickMeasure'); sel.textContent = '';
+  f.measures.forEach(([mn, g], i) => sel.append(el('option', {value: String(i)}, mn + ' (' + fmt(g, g < 10 ? 1 : 0) + ' g)')));
+  sel.append(el('option', {value:'g'}, 'grams (g)'));
+  sel.value = f.measures.length ? '0' : 'g';
+  $('pickQty').value = f.measures.length ? '1' : '100';
+  if (!$('pickMeal').dataset.touched) $('pickMeal').value = lastMeal || defaultMeal();
+  $('picker').classList.remove('hidden');
+  updatePreview();
+  $('pickQty').focus(); $('pickQty').select();
+}
+let lastMeal = null;
+$('pickMeal').addEventListener('change', e => { lastMeal = e.target.value; });
+function pickGrams() {
+  const q = parseFloat($('pickQty').value);
+  if (!(q > 0) || !picked) return 0;
+  const m = $('pickMeasure').value;
+  return m === 'g' ? q : q * picked.measures[+m][1];
+}
+function updatePreview() {
+  const g = pickGrams();
+  if (!g) { $('pickPreview').textContent = 'Enter an amount greater than 0.'; $('pickAdd').disabled = true; return; }
+  $('pickAdd').disabled = false;
+  const kc = picked.v[NIDX.energy];
+  $('pickPreview').textContent = '= ' + fmt(g, 0) + ' g' + (kc !== null ? ' · ' + fmt(kc*g/100, 0) + ' kcal' : '');
+}
+$('pickQty').addEventListener('input', updatePreview);
+$('pickMeasure').addEventListener('change', () => {
+  if ($('pickMeasure').value === 'g' && parseFloat($('pickQty').value) <= 5) $('pickQty').value = '100';
+  updatePreview();
+});
+$('pickQty').addEventListener('keydown', e => { if (e.key === 'Enter') addPicked(); });
+$('pickAdd').addEventListener('click', addPicked);
+$('pickCancel').addEventListener('click', closePicker);
+function addPicked() {
+  const g = pickGrams(); if (!g || !picked) return;
+  const m = $('pickMeasure').value;
+  const qty = parseFloat($('pickQty').value);
+  state.days[curDay].push({fid: picked.id, qty, mname: m === 'g' ? 'g' : picked.measures[+m][0], g: Math.round(g*10)/10, meal: $('pickMeal').value});
+  lastMeal = $('pickMeal').value;
+  save(); toast('Added to Day ' + (curDay+1)); closePicker(); renderDiary();
+  $('search').value = ''; $('search').focus();
+}
+function closePicker() { picked = null; $('picker').classList.add('hidden'); }
+
+/* ---- file ops ---- */
+/* Downloads: inside a claude.ai artifact use the platform's downloads capability;
+   on a normal website (e.g. Netlify) use a plain link download. */
+let DL = null, IN_ARTIFACT = !!(window.claude && typeof window.claude.use === 'function');
+if (IN_ARTIFACT) {
+  $('printBtn').classList.add('hidden');
+  window.claude.use('downloads').then(d => { DL = d; }).catch(() => {});
+}
+async function download(name, text, type) {
+  if (IN_ARTIFACT) {
+    if (!DL) { toast('Saving files is not available in this view'); return; }
+    try { await DL.save({filename: name, data: text}); toast('Saved ' + name); }
+    catch (e) { if (!e || e.code !== 'declined') toast('Could not save the file here'); }
+    return;
+  }
+  const blob = new Blob([text], {type});
+  const a = el('a', {href: URL.createObjectURL(blob), download: name});
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function fileStem() { return 'food-diary' + (state.label ? '-' + state.label.replace(/[^\w-]+/g,'_') : ''); }
+$('saveFile').addEventListener('click', () => {
+  download(fileStem() + '.json', JSON.stringify(Object.assign({app:'nutrient-tracker', saved: new Date().toISOString()}, state), null, 1), 'application/json');
+});
+$('openFileBtn').addEventListener('click', () => $('openFile').click());
+$('openFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const s = JSON.parse(await file.text());
+    if (!s || !Array.isArray(s.days)) throw new Error('not a diary');
+    const before = s.days.reduce((a,d)=>a+(d||[]).length,0);
+    applyLoaded(s);
+    const after = state.days.reduce((a,d)=>a+d.length,0);
+    save(); curDay = 0; renderSetup(); renderDiary();
+    toast(before === after ? 'Diary opened' : `Diary opened; ${before-after} food(s) not found in this database were skipped`);
+  } catch (err) { toast('That file is not a diary saved from this page'); }
+  e.target.value = '';
+});
+let clearArmed = false;
+$('clearAll').addEventListener('click', e => {
+  if (!clearArmed) { clearArmed = true; e.target.textContent = 'Tap again to clear'; setTimeout(()=>{ clearArmed = false; e.target.textContent = 'Clear everything'; }, 3000); return; }
+  clearArmed = false; e.target.textContent = 'Clear everything';
+  state.days = [[],[],[],[],[]]; save(); curDay = 0; renderDiary(); toast('Diary cleared');
+});
+$('goResults').addEventListener('click', () => showView('results'));
+
+/* ================= Results ================= */
+function compute() {
+  const nd = state.ndays;
+  const filled = [];
+  for (let d = 0; d < nd; d++) if (state.days[d].length) filled.push(d);
+  const perDay = filled.map(d => {
+    const tot = NUTRIENTS.map(()=>0), miss = NUTRIENTS.map(()=>0);
+    let grams = 0;
+    for (const e of state.days[d]) {
+      grams += e.g;
+      NUTRIENTS.forEach((n, i) => { const v = entryNutrient(e, i); if (v === null) miss[i] += e.g; else tot[i] += v; });
+    }
+    return {d, tot, miss, grams};
+  });
+  const n = perDay.length;
+  const avg = NUTRIENTS.map((_, i) => n ? perDay.reduce((a,p)=>a+p.tot[i],0)/n : null);
+  const gramsAll = perDay.reduce((a,p)=>a+p.grams,0);
+  const cov = NUTRIENTS.map((_, i) => gramsAll ? 1 - perDay.reduce((a,p)=>a+p.miss[i],0)/gramsAll : null);
+  return {filled, perDay, n, avg, cov};
+}
+function statusFor(k, v, r) {
+  if (v === null) return null;
+  if (r.ul && r.ulFood !== false && v > r.ul) return {cls:'st-crit', ic:'▲', t:'Above UL'};
+  if (r.cdrr && v > r.cdrr) return {cls:'st-crit', ic:'▲', t:'Above CDRR'};
+  if (!r.ref) return null;
+  if (r.type === 'AI') return v >= r.ref ? {cls:'st-good', ic:'✓', t:'Meets AI'} : {cls:'st-neutral', ic:'–', t:'Below AI'};
+  if (v >= r.ref) return {cls:'st-good', ic:'✓', t:'Meets RDA'};
+  if (r.ear && v >= r.ear) return {cls:'st-warn', ic:'●', t:'Between EAR and RDA'};
+  return {cls:'st-warn', ic:'▼', t:'Below EAR'};
+}
+let selNut = null;
+function renderResults() {
+  const R = compute();
+  const g = state.group;
+  // header
+  const H = $('resHeader'); H.textContent = '';
+  H.append(el('h2', {text: 'Results' + (state.label ? ' – ' + state.label : '')}),
+    el('p', {class:'small', style:'margin:0'},
+      'Reference group: ', el('strong', {text: GROUP_LABEL[g]}),
+      ' · Days with entries: ', el('strong', {text: R.n + ' of ' + state.ndays}),
+      state.weight ? ' · Body weight: ' + state.weight + ' kg' : '',
+      ' · Generated ' + new Date().toLocaleString()));
+  // warnings
+  const W = $('resWarnings'); W.textContent = '';
+  const warns = [];
+  if (DATA.meta.demo) warns.push('Demo data: these numbers come from placeholder values, not the Canadian Nutrient File.');
+  if (R.n === 0) warns.push('No foods entered yet. Go to the Food diary tab to add foods.');
+  else if (R.n < state.ndays) warns.push(`Only ${R.n} of ${state.ndays} days have foods. Averages use the ${R.n} day(s) with entries.`);
+  R.perDay.forEach(p => { const kc = p.tot[NIDX.energy]; if (kc < 1000) warns.push(`Day ${p.d+1} totals ${fmt(kc,0)} kcal. If that seems low, check for missed foods or drinks.`); });
+  const lowCov = NUTRIENTS.filter((n,i)=>R.cov[i] !== null && R.cov[i] < 0.9).map(n=>n.name);
+  if (lowCov.length) warns.push('Some foods have no value for: ' + lowCov.join(', ') + '. Those totals are likely underestimates (see Data coverage).');
+  if (!warns.length) { W.classList.add('hidden'); }
+  else { W.classList.remove('hidden'); W.append(el('h2', {text:'Check before you interpret'}), el('ul', {class:'warn-list'}, ...warns.map(w=>el('li', {text:w})))); }
+  // energy
+  const E = $('energyStats'); E.textContent = '';
+  const kcs = R.perDay.map(p=>p.tot[NIDX.energy]);
+  E.append(stat(R.n ? fmt(R.avg[NIDX.energy],0) : '–', 'Average kcal/day'));
+  E.append(stat(R.n ? fmt(Math.min(...kcs),0) + '–' + fmt(Math.max(...kcs),0) : '–', 'Lowest–highest day (kcal)'));
+  E.append(stat(R.n ? fmt(R.avg[NIDX.energy]*4.184/1000, 1) : '–', 'Average MJ/day'));
+  // macros
+  renderMacros(R);
+  // nutrients
+  const tb = $('nutTable').querySelector('tbody'); tb.textContent = '';
+  for (const [i, n] of NUTRIENTS.entries()) {
+    if (n.k === 'energy') continue;
+    const v = R.n ? R.avg[i] : null;
+    const r = dri(n.k, g, state.weight);
+    const pct = (v !== null && r.ref) ? v / r.ref * 100 : null;
+    const st = statusFor(n.k, v, r);
+    const cov = R.cov[i];
+    const tr = el('tr', {class:'clickable' + (selNut === n.k ? ' sel' : ''), tabindex:'0', onclick: () => showSources(n.k), onkeydown: ev => { if (ev.key === 'Enter') showSources(n.k); }},
+      el('td', null, n.name, el('span', {class:'muted small', text:' ' + n.unit})),
+      el('td', {class:'num', text: fmt(v, n.dp)}),
+      el('td', {class:'num hide-sm', text: r.ear ? fmt(r.ear, n.dp) : '–'}),
+      el('td', {class:'num hide-sm', title: r.note || '', text: r.ref ? fmt(r.ref, n.dp) + (r.type === 'AI' ? ' AI' : '') : (r.text ? '' : '–')}),
+      el('td', null, r.ref ? pbar(pct, n.name) : el('span', {class:'small muted', text: r.text || ''})),
+      el('td', {class:'num hide-sm', title: r.ulNote || (r.cdrr ? 'Chronic Disease Risk Reduction intake' : '')}, r.ul ? fmt(r.ul, 0) + (r.ulFood === false ? '*' : '') : (r.cdrr ? fmt(r.cdrr,0) + ' CDRR' : '–')),
+      el('td', null, st ? el('span', {class:'status ' + st.cls}, el('span', {class:'ic', 'aria-hidden':'true', text: st.ic}), st.t) : ''),
+      el('td', {class:'num hide-sm' + (cov !== null && cov < 0.9 ? ' cov-low' : ''), text: cov === null ? '–' : Math.round(cov*100) + '%'})
+    );
+    tb.append(tr);
+  }
+  if (selNut) showSources(selNut, true); else $('sourcesPanel').classList.add('hidden');
+  renderDayTable(R);
+}
+function stat(v, l) { return el('div', {class:'stat'}, el('div', {class:'v', text:v}), el('div', {class:'l', text:l})); }
+function pbar(pct, name) {
+  if (pct === null) return el('span', {class:'muted', text:'–'});
+  const max = 200;
+  const w = Math.min(pct, max) / max * 100;
+  const bar = el('div', {class:'pbar', role:'img', 'aria-label': name + ': ' + Math.round(pct) + '% of reference'},
+    el('div', {class:'fill', style:'width:' + w + '%'}),
+    el('div', {class:'tick', style:'left:50%'}));
+  bar.addEventListener('mousemove', ev => tip(ev, name + ': ' + Math.round(pct) + '% of RDA/AI'));
+  bar.addEventListener('mouseleave', hideTip);
+  return el('div', {style:'display:flex;align-items:center;gap:6px'}, bar, el('span', {class:'small', style:'min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums', text: Math.round(pct) + '%'}));
+}
+function tip(ev, text) { const t = $('tooltip'); t.textContent = text; t.style.display = 'block'; t.style.left = (ev.clientX + 12) + 'px'; t.style.top = (ev.clientY + 12) + 'px'; }
+function hideTip() { $('tooltip').style.display = 'none'; }
+function renderMacros(R) {
+  const parts = [
+    {k:'protein', name:'Protein', f:4, c:'var(--s1)'},
+    {k:'carb', name:'Carbohydrate', f:4, c:'var(--s2)'},
+    {k:'fat', name:'Fat', f:9, c:'var(--s3)'},
+    {k:'alcohol', name:'Alcohol', f:7, c:'var(--s4)'}
+  ];
+  const kc = parts.map(p => R.n ? (R.avg[NIDX[p.k]] || 0) * p.f : 0);
+  const sum = kc.reduce((a,b)=>a+b,0);
+  const L = $('macroLegend'); L.textContent = '';
+  const B = $('macroBar'); B.textContent = '';
+  const T = $('macroTable').querySelector('tbody'); T.textContent = '';
+  const shown = parts.filter((p,i) => p.k !== 'alcohol' || kc[i] > 0);
+  shown.forEach(p => L.append(el('span', null, el('span', {class:'sw', style:'background:' + p.c}), p.name)));
+  const lab = [];
+  parts.forEach((p, i) => {
+    const pct = sum ? kc[i]/sum*100 : 0;
+    if (pct > 0) {
+      const seg = el('div', {style:`width:${pct}%;background:${p.c}`});
+      seg.addEventListener('mousemove', ev => tip(ev, `${p.name}: ${fmt(pct,0)}% of energy`));
+      seg.addEventListener('mouseleave', hideTip);
+      B.append(seg);
+      lab.push(`${p.name} ${fmt(pct,0)}%`);
+    }
+    if (p.k === 'alcohol' && kc[i] === 0) return;
+    const a = AMDR[p.k];
+    let st = null;
+    if (a && sum) st = pct < a[0] ? {cls:'st-warn', ic:'▼', t:'Below AMDR'} : pct > a[1] ? {cls:'st-warn', ic:'▲', t:'Above AMDR'} : {cls:'st-good', ic:'✓', t:'Within AMDR'};
+    T.append(el('tr', null,
+      el('td', null, el('span', {class:'sw', style:`display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;background:${p.c}`}), p.name),
+      el('td', {class:'num hide-sm', text: R.n ? fmt(R.avg[NIDX[p.k]], 1) : '–'}),
+      el('td', {class:'num', text: sum ? fmt(pct, 0) + '%' : '–'}),
+      el('td', {class:'num', text: a ? a[0] + '–' + a[1] + '%' : '–'}),
+      el('td', null, st ? el('span', {class:'status ' + st.cls}, el('span', {class:'ic', 'aria-hidden':'true', text: st.ic}), st.t) : '')
+    ));
+  });
+  B.setAttribute('aria-label', 'Energy split: ' + (lab.join(', ') || 'no data'));
+  const cnfK = R.n ? R.avg[NIDX.energy] : 0;
+  $('macroNote').textContent = sum ?
+    `Percentages use 4/4/9/7 kcal per g and are scaled to 100%. These factors give ${fmt(sum,0)} kcal/day; the CNF energy total is ${fmt(cnfK,0)} kcal/day. Carbohydrate includes fibre.` : '';
+}
+function showSources(k, keepOpen) {
+  if (!keepOpen && selNut === k) { selNut = null; $('sourcesPanel').classList.add('hidden'); document.querySelectorAll('#nutTable tr.sel').forEach(r=>r.classList.remove('sel')); return; }
+  selNut = k;
+  const i = NIDX[k], n = NUTRIENTS[i];
+  document.querySelectorAll('#nutTable tbody tr').forEach((r, j) => r.classList.toggle('sel', NUTRIENTS[j+1].k === k));
+  const agg = new Map(); let total = 0;
+  const missing = new Set();
+  for (let d = 0; d < state.ndays; d++) for (const e of state.days[d]) {
+    const v = entryNutrient(e, i); const f = FOODS.get(e.fid);
+    if (v === null) { missing.add(f.name); continue; }
+    total += v; agg.set(f.name, (agg.get(f.name) || 0) + v);
+  }
+  const top = [...agg.entries()].filter(x=>x[1] > 0).sort((a,b)=>b[1]-a[1]).slice(0, 6);
+  const P = $('sourcesPanel'); P.textContent = ''; P.classList.remove('hidden');
+  P.append(el('strong', {text: 'Top sources of ' + n.name.toLowerCase() + ' (all days)'}));
+  if (!top.length) P.append(el('p', {class:'small', text:'None of your foods supplied this nutrient.'}));
+  else P.append(el('table', null, el('tbody', null, ...top.map(([nm, v]) => el('tr', null,
+    el('td', {text:nm}), el('td', {class:'num', text: fmt(v, n.dp) + ' ' + n.unit}), el('td', {class:'num', text: fmt(v/total*100, 0) + '%'}))))));
+  if (missing.size) P.append(el('p', {class:'small muted', style:'margin:6px 0 0', text: 'No value in the database for: ' + [...missing].slice(0,8).join('; ') + (missing.size > 8 ? '…' : '')}));
+}
+function renderDayTable(R) {
+  const T = $('dayTable'); T.textContent = '';
+  const keys = ['energy','protein','carb','fat','fibre','na'];
+  T.append(el('thead', null, el('tr', null, el('th', {text:'Day'}), ...keys.map(k => el('th', {class:'num', text: NUTRIENTS[NIDX[k]].name + ' (' + NUTRIENTS[NIDX[k]].unit + ')'})))));
+  const tb = el('tbody');
+  for (const p of R.perDay) tb.append(el('tr', null, el('td', {text:'Day ' + (p.d+1)}), ...keys.map(k => el('td', {class:'num', text: fmt(p.tot[NIDX[k]], NUTRIENTS[NIDX[k]].dp)}))));
+  if (R.n > 1) tb.append(el('tr', null, el('td', null, el('strong', null, 'Average')), ...keys.map(k => el('td', {class:'num'}, el('strong', null, fmt(R.avg[NIDX[k]], NUTRIENTS[NIDX[k]].dp))))));
+  T.append(tb);
+}
+
+/* ---- export ---- */
+function csvCell(x) { const s = String(x ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
+$('dlCsv').addEventListener('click', () => {
+  const R = compute(), g = state.group, rows = [];
+  rows.push(['Food Diary Nutrient Tracker']);
+  rows.push(['Name/ID', state.label]); rows.push(['Reference group', GROUP_LABEL[g]]);
+  rows.push(['Days with entries', R.n + ' of ' + state.ndays]); rows.push(['Data', DATA.meta.demo ? 'DEMO placeholder values' : DATA.meta.source + ' ' + (DATA.meta.version||'')]);
+  rows.push([]);
+  rows.push(['SUMMARY (average per day)']);
+  rows.push(['Nutrient','Unit','Average/day', ...R.perDay.map(p=>'Day ' + (p.d+1)),'EAR','RDA or AI','Type','% of RDA/AI','UL','Status','Data coverage %']);
+  NUTRIENTS.forEach((n, i) => {
+    const r = dri(n.k, g, state.weight), v = R.n ? R.avg[i] : null, st = statusFor(n.k, v, r);
+    rows.push([n.name, n.unit, v === null ? '' : +v.toFixed(n.dp+1), ...R.perDay.map(p=>+p.tot[i].toFixed(n.dp+1)), r.ear ?? '', r.ref ?? '', r.type ?? (r.text||''),
+      (v !== null && r.ref) ? Math.round(v/r.ref*100) : '', r.ul ? r.ul + (r.ulFood === false ? ' (not applied to food)' : '') : (r.cdrr ? r.cdrr + ' CDRR' : ''), st ? st.t : '', R.cov[i] === null ? '' : Math.round(R.cov[i]*100)]);
+  });
+  rows.push([]);
+  rows.push(['FOOD ENTRIES']);
+  rows.push(['Day','Meal','Food','Amount','Measure','Grams', ...NUTRIENTS.map(n=>n.name + ' (' + n.unit + ')')]);
+  for (let d = 0; d < state.ndays; d++) for (const e of state.days[d]) {
+    const f = FOODS.get(e.fid);
+    rows.push([d+1, e.meal, f.name, e.qty, e.mname, e.g, ...NUTRIENTS.map((n,i)=>{ const v = entryNutrient(e,i); return v === null ? 'NA' : +v.toFixed(n.dp+1); })]);
+  }
+  download(fileStem() + '-results.csv', '﻿' + rows.map(r=>r.map(csvCell).join(',')).join('\r\n'), 'text/csv');
+});
+$('printBtn').addEventListener('click', () => { renderResults(); window.print(); });
+
+/* ================= Init ================= */
+load(); renderSetup(); renderDiary();
+</script>
+</body>
+</html>
