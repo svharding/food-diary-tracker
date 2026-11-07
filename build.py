@@ -247,7 +247,9 @@ def main():
         for code, name, brand, vals, measures in off["foods"]:
             if not brand.strip():
                 continue  # unbranded entries duplicate generic CNF foods and are less reliable
-            foods.append([code, name, brand, [sig(vals[i]) for i in keep], measures])
+            clean = lambda t: " ".join(t.replace("\ufffd", "").split())
+            measures = [[clean(m), g] for m, g in measures]
+            foods.append([code, clean(name), clean(brand), [sig(vals[i]) for i in keep], measures])
         off["meta"]["keys"] = [keys[i] for i in keep]
         off["foods"] = foods
         data["extra"] = [{
