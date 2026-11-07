@@ -224,6 +224,7 @@ def main():
     ap.add_argument("--cnf", help="folder with CNF CSV files")
     ap.add_argument("--version", default="CNF 2026")
     ap.add_argument("--out", default=str(HERE / "index.html"))
+    ap.add_argument("--off", help="Open Food Facts extract (data/off_canada.json)")
     a = ap.parse_args()
     if a.demo:
         data = json.loads((HERE / "demo_data.json").read_text())
@@ -232,6 +233,14 @@ def main():
         data = build_cnf(a.cnf, a.version)
     else:
         ap.error("use --demo or --cnf DIR")
+    if a.off:
+        off = json.loads(Path(a.off).read_text(encoding="utf-8"))
+        data["extra"] = [{
+            "id": "off", "short": "Label", "label": "Packaged products, label data (Open Food Facts)",
+            "credit": "Packaged products: (c) Open Food Facts contributors, ODbL. Label data only; entries may contain errors.",
+            "fetched": off["meta"].get("fetched"), "keys": off["meta"]["keys"], "foods": off["foods"],
+        }]
+        print(f"Added {len(off['foods']):,} Open Food Facts products")
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = (HERE / "template.html").read_text(encoding="utf-8").replace("/*__CNF_DATA__*/", blob)
     Path(a.out).write_text(html, encoding="utf-8")

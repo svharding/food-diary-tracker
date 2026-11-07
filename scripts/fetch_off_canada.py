@@ -4,7 +4,7 @@ complete core Nutrition Facts data. Writes data/off_canada.json and a summary.
 
 Open Food Facts data: (c) Open Food Facts contributors, Open Database License (ODbL).
 """
-import csv, gzip, io, json, statistics, sys, urllib.request, datetime
+import csv, gzip, io, json, os, statistics, sys, urllib.request, datetime
 
 URL = "https://static.openfoodfacts.org/data/en.openfoodfacts.org.products.csv.gz"
 OUT = "data/off_canada.json"
@@ -98,6 +98,7 @@ def main():
         "fetched": datetime.date.today().isoformat(),
         "keys": keys,
     }
+    os.makedirs("data", exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as fh:
         json.dump({"meta": meta, "foods": out}, fh, ensure_ascii=False, separators=(",", ":"))
     lines = [f"Fetched {meta['fetched']}", f"Rows scanned: {total:,}", f"Tagged Canada: {canada:,}",

@@ -99,6 +99,7 @@ input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accen
 .results li:last-child { border-bottom: none; }
 .results li:hover, .results li.active { background: var(--surface-2); }
 .results li .grp { color: var(--text-3); font-size: 0.8rem; }
+.tag { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; margin-right: 6px; border-radius: 4px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-2); vertical-align: 1px; }
 .picker { margin-top: 10px; padding: 10px; border: 1px dashed var(--border); border-radius: 8px; }
 .picker .name { font-weight: 600; margin-bottom: 8px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -160,7 +161,7 @@ tr.sel td { background: var(--surface-2); }
     <span class="src" id="srcLine"></span>
   </header>
   <div class="banner hidden" id="demoBanner">
-    <strong>Demo mode: placeholder values.</strong> This preview uses 18 hand-entered sample foods with approximate values so you can test the layout.
+    <strong>Demo mode: placeholder values.</strong> The generic foods (no "Label" tag) are 18 hand-entered samples with approximate values for testing the layout.
     They are <strong>not</strong> Canadian Nutrient File data. Do not use these numbers for teaching or assessment.
   </div>
   <div class="banner" id="privacyNote">
@@ -205,7 +206,15 @@ tr.sel td { background: var(--surface-2); }
       <div class="daytabs" id="dayTabs" role="tablist"></div>
       <div class="search-box">
         <label class="f" for="search">Add a food to <span id="dayLabel">Day 1</span></label>
-        <input type="search" id="search" placeholder="Search foods, e.g. milk 2%, apple, cheddar" autocomplete="off">
+        <div style="display:flex;gap:8px">
+          <input type="search" id="search" placeholder="Search foods, e.g. milk 2%, apple, cheddar" autocomplete="off" style="flex:1;min-width:0">
+          <select id="srcFilter" class="hidden" aria-label="Which foods to search" style="max-width:42%">
+            <option value="all">All foods</option>
+            <option value="gen">Generic foods (CNF)</option>
+            <option value="off">Packaged products (labels)</option>
+          </select>
+        </div>
+        <p class="small muted hidden" id="offCredit" style="margin:4px 0 0"></p>
         <ul class="results hidden" id="results" role="listbox"></ul>
       </div>
       <div class="picker hidden" id="picker">
@@ -327,6 +336,7 @@ tr.sel td { background: var(--surface-2); }
       <ul>
         <li>Nutrient values come from Health Canada's Canadian Nutrient File (CNF), per 100 g of edible portion, scaled by the measure you choose.</li>
         <li>CNF foods are mostly generic. Pick the closest match, or enter a mixed dish as its main ingredients.</li>
+        <li>Foods tagged <strong>Label</strong> are packaged products from Open Food Facts, a volunteer database built from product labels. They list only what is on the Nutrition Facts table (energy, fats, carbohydrate, sugars, fibre, protein, sodium, and sometimes potassium, calcium and iron), so most vitamins and minerals will show as missing. Entries can contain errors. Values for drinks are often per 100 mL; this tool treats 1 mL as 1 g.</li>
         <li><strong>Data coverage</strong> shows how much of your food (by weight) has a value for that nutrient. A blank in the database is not a zero. Low coverage means the total is probably an underestimate.</li>
         <li>Energy is the CNF energy value (kcal). The energy split uses 4 kcal/g for protein and carbohydrate, 9 for fat and 7 for alcohol, and is scaled to 100%.</li>
         <li>Total sugars include sugars naturally in foods. The CNF does not report added sugars.</li>
@@ -334,6 +344,7 @@ tr.sel td { background: var(--surface-2); }
       <h3>Sources</h3>
       <ul class="small">
         <li>Health Canada. Canadian Nutrient File. Open Government Licence – Canada.</li>
+        <li>Open Food Facts: © Open Food Facts contributors, Open Database License (ODbL). openfoodfacts.org</li>
         <li>Health Canada. Dietary Reference Intakes tables: reference values for vitamins, elements and macronutrients.</li>
       </ul>
     </div>
@@ -433,14 +444,31 @@ const FOODS = new Map();
     const [id, name, group, vals, measures, alt] = f;
     const v = map.map(j => (j < 0 || vals[j] === null || vals[j] === undefined) ? null : +vals[j]);
     const search = (name + ' ' + (alt || '')).toLowerCase();
-    FOODS.set(id, {id, name, group: group || '', v, measures: measures || [], search});
+    FOODS.set(id, {id, name, group: group || '', v, measures: measures || [], search, src:'gen'});
+  }
+  // Extra sources, e.g. Open Food Facts packaged products (label data)
+  for (const x of (DATA.extra || [])) {
+    const xmap = NUTRIENTS.map(n => x.keys.indexOf(n.k));
+    for (const [code, name, brand, vals, measures] of x.foods) {
+      const id = x.id + ':' + code;
+      const v = xmap.map(j => (j < 0 || vals[j] === null || vals[j] === undefined) ? null : +vals[j]);
+      const label = name + (brand ? ' – ' + brand : '');
+      FOODS.set(id, {id, name: label, group: x.short, v, measures: measures || [], search: label.toLowerCase(), src: x.id});
+    }
   }
 })();
 const FOOD_LIST = [...FOODS.values()];
 
+const N_GEN = FOOD_LIST.filter(f => f.src === 'gen').length;
 document.getElementById('srcLine').textContent =
-  (DATA.meta.demo ? 'Data: DEMO placeholder values' : 'Data: ' + DATA.meta.source + (DATA.meta.version ? ' (' + DATA.meta.version + ')' : '')) +
-  ' · ' + FOOD_LIST.length.toLocaleString() + ' foods';
+  (DATA.meta.demo ? 'Generic foods: DEMO placeholders' : 'Generic foods: ' + DATA.meta.source + (DATA.meta.version ? ' (' + DATA.meta.version + ')' : '')) +
+  ' (' + N_GEN.toLocaleString() + ')' +
+  (DATA.extra || []).map(x => ' · ' + x.label + ' (' + x.foods.length.toLocaleString() + ')').join('');
+if (DATA.extra && DATA.extra.length) {
+  document.getElementById('srcFilter').classList.remove('hidden');
+  document.getElementById('offCredit').classList.remove('hidden');
+  document.getElementById('offCredit').textContent = DATA.extra.map(x => x.credit).join(' ');
+}
 if (DATA.meta.demo) document.getElementById('demoBanner').classList.remove('hidden');
 
 /* ================= State ================= */
@@ -554,10 +582,12 @@ function renderDiary() { renderDayTabs(); renderEntries(); }
 /* ---- search ---- */
 let searchHits = [], activeHit = -1, picked = null;
 function searchFoods(q) {
+  const srcF = $('srcFilter').value;
   const toks = q.toLowerCase().replace(/[,()]/g,' ').split(/\s+/).filter(Boolean);
   if (!toks.length) return [];
   const out = [];
   for (const f of FOOD_LIST) {
+    if (srcF !== 'all' && f.src !== srcF) continue;
     let ok = true;
     for (const t of toks) if (!f.search.includes(t)) { ok = false; break; }
     if (!ok) continue;
@@ -566,13 +596,17 @@ function searchFoods(q) {
     if (nm.startsWith(toks[0])) score -= 200;
     else if (new RegExp('\\b' + toks[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(nm)) score -= 100;
     if (/\braw\b/.test(nm)) score -= 5;
+    if (f.src === 'gen') score -= 60;
     out.push([score, f]);
   }
   out.sort((a,b)=>a[0]-b[0]);
   return out.slice(0, 40).map(x=>x[1]);
 }
-$('search').addEventListener('input', e => {
-  const q = e.target.value.trim();
+let searchT = null;
+$('search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(runSearch, 120); });
+$('srcFilter').addEventListener('change', runSearch);
+function runSearch() {
+  const q = $('search').value.trim();
   const ul = $('results'); ul.textContent = '';
   activeHit = -1;
   if (q.length < 2) { ul.classList.add('hidden'); return; }
@@ -580,9 +614,11 @@ $('search').addEventListener('input', e => {
   if (!searchHits.length) {
     ul.append(el('li', {class:'muted'}, 'No match. Try fewer or simpler words (e.g. "yogurt plain").'));
   }
-  searchHits.forEach((f, i) => ul.append(el('li', {role:'option', onclick: () => pickFood(f)}, f.name, ' ', el('span', {class:'grp', text: f.group ? '· ' + f.group : ''}))));
+  searchHits.forEach((f, i) => ul.append(el('li', {role:'option', onclick: () => pickFood(f)},
+    f.src !== 'gen' ? el('span', {class:'tag', text:'Label'}) : null, f.name, ' ',
+    el('span', {class:'grp', text: f.src === 'gen' && f.group ? '· ' + f.group : ''}))));
   ul.classList.remove('hidden');
-});
+}
 $('search').addEventListener('keydown', e => {
   const items = $('results').querySelectorAll('li[role=option]');
   if (!items.length) return;
@@ -602,7 +638,7 @@ function pickFood(f) {
   $('results').classList.add('hidden');
   $('pickName').textContent = f.name;
   const sel = $('pickMeasure'); sel.textContent = '';
-  f.measures.forEach(([mn, g], i) => sel.append(el('option', {value: String(i)}, mn + ' (' + fmt(g, g < 10 ? 1 : 0) + ' g)')));
+  f.measures.forEach(([mn, g], i) => sel.append(el('option', {value: String(i)}, /\(\s*[\d.,]+\s*g\s*\)\s*$/i.test(mn) ? mn : mn + ' (' + fmt(g, g < 10 ? 1 : 0) + ' g)')));
   sel.append(el('option', {value:'g'}, 'grams (g)'));
   sel.value = f.measures.length ? '0' : 'g';
   $('pickQty').value = f.measures.length ? '1' : '100';
@@ -740,7 +776,10 @@ function renderResults() {
   if (R.n === 0) warns.push('No foods entered yet. Go to the Food diary tab to add foods.');
   else if (R.n < state.ndays) warns.push(`Only ${R.n} of ${state.ndays} days have foods. Averages use the ${R.n} day(s) with entries.`);
   R.perDay.forEach(p => { const kc = p.tot[NIDX.energy]; if (kc < 1000) warns.push(`Day ${p.d+1} totals ${fmt(kc,0)} kcal. If that seems low, check for missed foods or drinks.`); });
-  const lowCov = NUTRIENTS.filter((n,i)=>R.cov[i] !== null && R.cov[i] < 0.9).map(n=>n.name);
+  let nLabel = 0, nAll = 0;
+  for (let d = 0; d < state.ndays; d++) for (const e of state.days[d]) { nAll++; if (FOODS.get(e.fid).src !== 'gen') nLabel++; }
+  if (nLabel) warns.push(`${nLabel} of your ${nAll} foods are packaged products with label data only, so most vitamins and minerals are missing for them.`);
+  const lowCov = NUTRIENTS.filter((n,i)=>n.k !== 'alcohol' && R.cov[i] !== null && R.cov[i] < 0.9).map(n=>n.name);
   if (lowCov.length) warns.push('Some foods have no value for: ' + lowCov.join(', ') + '. Those totals are likely underestimates (see Data coverage).');
   if (!warns.length) { W.classList.add('hidden'); }
   else { W.classList.remove('hidden'); W.append(el('h2', {text:'Check before you interpret'}), el('ul', {class:'warn-list'}, ...warns.map(w=>el('li', {text:w})))); }
