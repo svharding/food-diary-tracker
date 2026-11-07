@@ -235,6 +235,21 @@ def main():
         ap.error("use --demo or --cnf DIR")
     if a.off:
         off = json.loads(Path(a.off).read_text(encoding="utf-8"))
+        keys = off["meta"]["keys"]
+        drop = {"vita", "vitd", "vitc"}  # sparse and unreliable unit handling in label data
+        keep = [i for i, k in enumerate(keys) if k not in drop]
+        def sig(v):
+            if v is None: return None
+            if v == 0: return 0
+            r = float(f"{v:.3g}")
+            return int(r) if r == int(r) else r
+        foods = []
+        for code, name, brand, vals, measures in off["foods"]:
+            if not brand.strip():
+                continue  # unbranded entries duplicate generic CNF foods and are less reliable
+            foods.append([code, name, brand, [sig(vals[i]) for i in keep], measures])
+        off["meta"]["keys"] = [keys[i] for i in keep]
+        off["foods"] = foods
         data["extra"] = [{
             "id": "off", "short": "Label", "label": "Packaged products, label data (Open Food Facts)",
             "credit": "Packaged products: (c) Open Food Facts contributors, ODbL. Label data only; entries may contain errors.",
