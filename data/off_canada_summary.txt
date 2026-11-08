@@ -1,4 +1,4 @@
-Fetched 2026-11-07
+Fetched 2026-11-08
 Rows scanned: 4,899,177
 Tagged Canada: 130,245
 Kept (complete core label data, deduplicated): 98,227
