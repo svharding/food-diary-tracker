@@ -49,7 +49,7 @@ def main():
     idx = {h: i for i, h in enumerate(header)}
     missing = [c for c, _ in FIELDS.values() if c not in idx]
     print("Columns missing from export:", missing, flush=True)
-    need = ["code", "product_name", "brands", "countries_tags", "serving_size", "serving_quantity"]
+    need = ["code", "product_name", "brands", "countries_tags", "serving_size", "serving_quantity", "main_category"]
     for c in need:
         if c not in idx:
             sys.exit(f"Required column {c} not in export")
@@ -91,7 +91,7 @@ def main():
         for k in keys:
             if d[k] is not None and len(raw_samples[k]) < 20000:
                 raw_samples[k].append(d[k])
-        out.append([row[idx["code"]], name[:120], brand[:60], vals, measures])
+        out.append([row[idx["code"]], name[:120], brand[:60], vals, measures, row[idx["main_category"]].strip()[:60]])
     meta = {
         "source": "Open Food Facts (Canada)",
         "licence": "ODbL; (c) Open Food Facts contributors",
