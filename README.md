@@ -2,7 +2,7 @@
 
 A single-page teaching tool. Students enter a 3–5 day food diary and get daily averages for energy, macronutrients and 27 nutrients, compared with Health Canada's Dietary Reference Intakes (EAR, RDA/AI, UL, AMDR).
 
-**Status: prototype.** Generic foods are still 18 hand-entered DEMO foods (not Canadian Nutrient File data) until the CNF 2026 files are added. Packaged products (about 70,000 branded Canadian products) come from Open Food Facts label data.
+**Status: pilot version.** Generic foods: Health Canada's Canadian Nutrient File 2026 (5,993 foods). Packaged products: about 68,700 branded Canadian products from Open Food Facts label data, after automatic plausibility checks remove entries whose values are inconsistent (e.g., per-serving values typed into per-100 g fields).
 
 ## Features
 - Food search, household measures or grams, meal tags, 3–5 days

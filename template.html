@@ -593,8 +593,13 @@ function searchFoods(q) {
     if (!ok) continue;
     const nm = f.name.toLowerCase();
     let score = nm.length;
-    if (nm.startsWith(toks[0])) score -= 200;
-    else if (new RegExp('\\b' + toks[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(nm)) score -= 100;
+    const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const head = nm.split(/[,–]/)[0].trim();
+    if (head === toks[0] || head === toks[0] + 's') score -= 300;          // "Milk, ...", "Egg, ..."
+    else if (nm.startsWith(toks[0])) score -= 200;
+    else if (new RegExp('\\b' + esc(toks[0])).test(nm)) score -= 100;
+    for (const t of toks) if (new RegExp('(^|[^a-z0-9])' + esc(t) + 's?($|[^a-z0-9])').test(nm)) score -= 40;  // whole-word match
+    if (/\b(duck|goose|quail|emu|ostrich|goat|sheep|buffalo|buttermilk|dried|dehydrated|powder|canned, unprepared|infant|baby food|toddler|feet|giblets|gizzards?|neck|back|liver|heart|kidneys?|tongue|tripe|brain)\b/.test(nm) && !toks.some(t => nm.includes(t) && /duck|goose|quail|goat|sheep|butter|dried|powder|infant|baby/.test(t))) score += 80;  // less common forms later
     if (/\braw\b/.test(nm)) score -= 5;
     if (f.src === 'gen') score -= 60;
     out.push([score, f]);

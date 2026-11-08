@@ -93,128 +93,134 @@ def num(x):
     except (TypeError, ValueError):
         return None
 
+# CNF 2026 nutrient codes (Nutrient_Name.csv). Checked against the 2026 release.
+CNF_CODES = {
+    "energy": ["208"], "protein": ["203"], "fat": ["204"], "sfa": ["606"], "carb": ["205"],
+    "sugars": ["269"], "fibre": ["291"], "alcohol": ["221"], "chol": ["601"],
+    "ala": ["851", "619"],  # 18:3 n-3 (ALA); falls back to 18:3 undifferentiated
+    "na": ["307"], "k": ["306"], "ca": ["301"], "fe": ["303"], "mg": ["304"], "zn": ["309"], "p": ["305"],
+    "vita": ["320"], "vitd": ["328"], "vite": ["323"], "vitk": ["430"], "vitc": ["401"],
+    "thia": ["404"], "ribo": ["405"], "nia": ["409"], "b6": ["415"], "fol": ["435"], "b12": ["418"],
+}
+MEASURE_TYPE_HOUSEHOLD = "6"   # 3 = refuse, 9 = yield (not portion sizes)
+
+def measure_sort_key(name):
+    n = name.lower()
+    if re.match(r"^1 [a-z]", n):       # "1 medium fruit", "1 slice"; medium first
+        return (0, 0 if "medium" in n else 1, n)
+    m = re.match(r"^([\d.]+)\s*ml", n)
+    if m:                               # 250 ml first among volumes
+        v = float(m.group(1))
+        return (1, -v if v >= 250 else 1000 - v, n)
+    return (2, n)
+
+# ---- Plausibility checks for crowd-sourced label data ----
+# Typical energy (kcal/100 g) ranges for foods students log often. A product
+# outside its range usually has per-serving values typed into per-100 g fields.
+MILK_WORDS = r"(organic|partly|skimmed|skim|homogeni[sz]ed|whole|fine[- ]?filtered|ultra[- ]?filtered|lactose[- ]free|grass[- ]fed|fresh|dairy|cow'?s?|\d+(\.\d+)?\s*%|m\.?f\.?|percent|milk|and|plus|natrel|[\s,.\-()])+"
+JUICE_WORDS = r"(100\s*%|pure|organic|not from concentrate|from concentrate|unsweetened|no pulp|pulp|with|calcium|fresh|squeezed|apple|orange|grape|grapefruit|cranberry|pineapple|mango|tomato|vegetable|lemon|lime|carrot|juice|cocktail|blend|[\s,.\-()&])+"
+NAME_RANGES = [   # whole-name patterns: only plain products are checked
+    (MILK_WORDS, r"\bmilk\b", 25, 80),
+    (JUICE_WORDS, r"\bjuice\b", 5, 75),
+]
+
+def plausibility_reference(off):
+    import math, statistics as st
+    keys = off["meta"]["keys"]; ie = keys.index("energy")
+    by = {}
+    for rec in off["foods"]:
+        if len(rec) > 5 and rec[5] and rec[3][ie]:
+            by.setdefault(rec[5], []).append(math.log(rec[3][ie]))
+    ref = {}
+    for c, xs in by.items():
+        if len(xs) >= 15:
+            med = st.median(xs)
+            mad = st.median([abs(x - med) for x in xs]) or 0.1
+            ref[c] = (med, mad)
+    return ref
+
+def implausible(name, cat, v, ref):
+    import math
+    e, p, f, c = v["energy"], v["protein"], v["fat"], v["carb"]
+    atw = 4 * p + 4 * c + 9 * f + 7 * (v.get("alcohol") or 0)
+    if e > 40 and atw > 0 and abs(e - atw) > max(40, 0.35 * e):
+        return "energy does not match protein, fat and carbohydrate"
+    if e == 0 and atw > 20:
+        return "energy does not match protein, fat and carbohydrate"
+    n = name.lower().strip()
+    for whole, must, lo, hi in NAME_RANGES:
+        if re.fullmatch(whole, n) and re.search(must, n) and not (lo <= e <= hi):
+            return "energy outside the usual range for this kind of food"
+    return None
+
 def build_cnf(d, version):
     d = Path(d)
-    f_food = find_file(d, r"^foodname", r"foodname")
-    f_amt = find_file(d, r"^nutrientamount", r"nutrientamount")
-    f_nn = find_file(d, r"^nutrientname", r"nutrientname")
-    f_grp = find_file(d, r"^foodgroup", r"foodgroup")
-    f_conv = find_file(d, r"measureweightconversion", r"^conversionfactor", r"conversionfactor", r"measureweight")
-    f_mn = find_file(d, r"^measurename", r"measurename")
-    print("Files:")
-    for lbl, f in [("food name", f_food), ("nutrient amount", f_amt), ("nutrient name", f_nn), ("food group", f_grp), ("conversion", f_conv), ("measure name", f_mn)]:
-        print(f"  {lbl:16s} {f.name if f else '-- NOT FOUND --'}")
-    if not (f_food and f_amt and f_nn):
-        sys.exit("Missing a required file")
-
-    foods = read_csv(f_food)
-    c_fid = col(foods, "FoodID", "Food ID", label="food id")
-    c_fdesc = col(foods, "FoodDescription", "FoodDescriptionE", "Food Description English", "FoodNameE", "FoodDescriptionEnglish", label="food description")
-    c_fgrp = col(foods, "FoodGroupID", "Food Group ID", required=False)
-    c_alt = col(foods, "AlternateFoodDescription", "AlternateDescription", "AlternateFoodDescriptionE", "AltFoodDescription", required=False)
-    c_fcode = col(foods, "FoodCode", "Food Code", required=False)
-
-    groups = {}
-    if f_grp:
-        g = read_csv(f_grp)
-        gid = col(g, "FoodGroupID", label="group id")
-        gname = col(g, "FoodGroupName", "FoodGroupNameE", "Food Group Name English", label="group name")
-        groups = {r[gid].strip(): r[gname].strip() for r in g}
-
-    nn = read_csv(f_nn)
-    c_nid = col(nn, "NutrientID", "NutrientNameID", "Nutrient ID", label="nutrient id")
-    c_nname = col(nn, "NutrientName", "NutrientNameE", "Nutrient Name English", label="nutrient name")
-    c_nunit = col(nn, "NutrientUnit", "Unit", required=False)
-    c_nsym = col(nn, "NutrientSymbol", "Symbol", required=False)
-
-    print("\nNutrient matching (CHECK THIS):")
-    key_to_nid, problems = {}, []
-    for key, unit, inc, exc in NUTRIENTS:
-        hits = []
-        for r in nn:
-            name = r[c_nname].strip().lower()
-            if re.search(inc, name) and not (exc and re.search(exc, name)):
-                hits.append(r)
-        if not hits:
-            problems.append(key)
-            print(f"  {key:8s} -- NO MATCH --")
-            continue
-        r = hits[0]
-        key_to_nid[key] = r[c_nid].strip()
-        u = r[c_nunit].strip() if c_nunit else "?"
-        extra = f"   (also matched: {'; '.join(h[c_nname].strip() for h in hits[1:4])})" if len(hits) > 1 else ""
-        flag = "" if unit_norm(u) == unit_norm(unit) else f"  <-- UNIT CHECK: expected {unit}"
-        print(f"  {key:8s} id={key_to_nid[key]:>5s}  {r[c_nname].strip()} [{u}]{extra}{flag}")
-
-    amt = read_csv(f_amt)
-    a_fid = col(amt, "FoodID", label="amount food id")
-    a_nid = col(amt, "NutrientID", "NutrientNameID", label="amount nutrient id")
-    a_val = col(amt, "NutrientValue", "NutrientAmount", "Value", label="amount value")
+    def rows(name):
+        p = next((x for x in d.rglob(name)), None)
+        if not p:
+            sys.exit(f"Missing {name}")
+        return read_csv(p)
+    names = {r["Nutrient_Code"].strip(): (r["Nutrient_Name_EN"].strip(), r["Nutrient_Unit"].strip()) for r in rows("Nutrient_Name.csv")}
+    print("Nutrient mapping (CNF 2026 codes):")
+    for k, codes in CNF_CODES.items():
+        print(f"  {k:8s} " + " | ".join(f"{c} {names.get(c, ('MISSING', ''))[0]} [{names.get(c, ('', '?'))[1]}]" for c in codes))
+        for c in codes:
+            if c not in names:
+                sys.exit(f"Nutrient code {c} not in Nutrient_Name.csv")
     keys = [k for k, *_ in NUTRIENTS]
-    nid_to_idx = {nid: keys.index(k) for k, nid in key_to_nid.items()}
-    vals = {}
-    for r in amt:
-        i = nid_to_idx.get(r[a_nid].strip())
-        if i is None:
+    code_to = {}
+    for k, codes in CNF_CODES.items():
+        for rank, c in enumerate(codes):
+            code_to[c] = (keys.index(k), rank)
+    vals, ranks = {}, {}
+    for r in rows("Nutrient_Amount.csv"):
+        c = r["Nutrient_Code"].strip()
+        if c not in code_to:
             continue
-        v = num(r[a_val])
+        v = num(r["Nutrient_Amount"])
         if v is None:
             continue
-        vals.setdefault(r[a_fid].strip(), [None] * len(NUTRIENTS))[i] = round(v, 4)
-
+        fid = r["Food_Code"].strip()
+        i, rank = code_to[c]
+        vv = vals.setdefault(fid, [None] * len(keys))
+        rr = ranks.setdefault(fid, [99] * len(keys))
+        if rank < rr[i]:
+            vv[i] = round(v, 4); rr[i] = rank
+    groups = {r["CNF_Food_Group_Code"].strip(): r["CNF_Food_Group_Description_EN"].strip() for r in rows("CNF_Food_Group.csv")}
+    mnames = {r["Measure_Code"].strip(): r["Measure_Description_and_Unit_EN"].strip() for r in rows("Measure_Name.csv")}
     measures = {}
-    if f_conv:
-        conv = read_csv(f_conv)
-        m_fid = col(conv, "FoodID", label="conv food id")
-        m_mid = col(conv, "MeasureID", required=False)
-        m_fac = col(conv, "ConversionFactorValue", "ConversionFactor", "MeasureWeightConversionFactor", "Factor", label="conversion factor")
-        m_g = col(conv, "MeasureWeight", "Weight", "Grams", "WeightGrams", required=False)
-        m_desc = col(conv, "MeasureDescription", "MeasureDescriptionE", "MeasureName", required=False)
-        mnames = {}
-        if f_mn:
-            mn = read_csv(f_mn)
-            mn_id = col(mn, "MeasureID", label="measure id")
-            mn_d = col(mn, "MeasureDescription", "MeasureDescriptionE", "MeasureName", "MeasureNameE", label="measure description")
-            mnames = {r[mn_id].strip(): r[mn_d].strip() for r in mn}
-        for r in conv:
-            fid = r[m_fid].strip()
-            name = (r[m_desc].strip() if m_desc and r.get(m_desc) else mnames.get(r[m_mid].strip(), "") if m_mid else "")
-            g = num(r[m_g]) if m_g else None
-            if g is None:
-                fac = num(r[m_fac])
-                g = fac * 100 if fac is not None else None
-            if not name or not g or g <= 0:
-                continue
-            lst = measures.setdefault(fid, [])
-            if all(n != name for n, _ in lst):
-                lst.append([name, round(g, 1)])
-
-    out_foods = []
-    for r in foods:
-        fid = r[c_fid].strip()
-        if fid not in vals:
+    for r in rows("Measure_Weight_Conversion.csv"):
+        if r["Measure_Type_Code"].strip() != MEASURE_TYPE_HOUSEHOLD:
             continue
-        name = re.sub(r"\s+", " ", r[c_fdesc]).strip()
-        grp = groups.get(r[c_fgrp].strip(), "") if c_fgrp else ""
-        alt = r[c_alt].strip() if c_alt and r.get(c_alt) else ""
-        rec = [int(fid) if fid.isdigit() else fid, name, grp, vals[fid], measures.get(fid, [])]
+        g = num(r["Measure_Weight_Conversion"])
+        name = mnames.get(r["Measure_Code"].strip(), "")
+        if not name or not g or g <= 0:
+            continue
+        lst = measures.setdefault(r["Food_Code"].strip(), [])
+        if all(n != name for n, _ in lst):
+            lst.append([name, round(g, 1)])
+    for lst in measures.values():
+        lst.sort(key=lambda x: measure_sort_key(x[0]))
+    out_foods = []
+    for r in rows("Food_Name.csv"):
+        fid = r["Food_Code"].strip()
+        if fid not in vals or vals[fid][keys.index("energy")] is None:
+            continue
+        name = " ".join(r["Food_Description_EN"].split())
+        alt = (r.get("Alternate_Description_EN") or "").strip()
+        rec = [int(fid), name, groups.get(r["CNF_Food_Group_Code"].strip(), ""), vals[fid], measures.get(fid, [])]
         if alt:
             rec.append(alt)
         out_foods.append(rec)
     out_foods.sort(key=lambda x: x[1].lower())
-
-    n_meas = sum(1 for f in out_foods if f[4])
-    print(f"\nFoods with nutrient values: {len(out_foods)}; with household measures: {n_meas}")
-    for key, *_ in NUTRIENTS:
-        i = [k for k, *_ in NUTRIENTS].index(key)
+    print(f"\nFoods: {len(out_foods)}; with household measures: {sum(1 for f in out_foods if f[4])}")
+    for i, k in enumerate(keys):
         have = sum(1 for f in out_foods if f[3][i] is not None)
-        print(f"  {key:8s} values for {have:5d} foods ({have / max(1, len(out_foods)):.0%})")
-    if problems:
-        print("\nWARNING: unmatched nutrients:", ", ".join(problems))
+        print(f"  {k:8s} values for {have:5d} foods ({have / max(1, len(out_foods)):.0%})")
     return {
         "meta": {"demo": False, "source": "Health Canada, Canadian Nutrient File", "version": version,
-                 "built": datetime.date.today().isoformat(), "unmatched": problems},
-        "nutrients": [k for k, *_ in NUTRIENTS],
+                 "built": datetime.date.today().isoformat()},
+        "nutrients": keys,
         "foods": out_foods,
     }
 
@@ -243,8 +249,15 @@ def main():
             if v == 0: return 0
             r = float(f"{v:.3g}")
             return int(r) if r == int(r) else r
-        foods = []
-        for code, name, brand, vals, measures in off["foods"]:
+        foods, dropped = [], {}
+        cats = None
+        for rec in off["foods"]:
+            code, name, brand, vals, measures = rec[:5]
+            cat = rec[5] if len(rec) > 5 else ""
+            why = implausible(name, cat, dict(zip(keys, vals)), cats)
+            if why:
+                dropped.setdefault(why, []).append(f"{name} – {brand}")
+                continue
             if not brand.strip():
                 continue  # unbranded entries duplicate generic CNF foods and are less reliable
             clean = lambda t: " ".join(t.replace("\ufffd", "").split())
@@ -258,6 +271,10 @@ def main():
             "fetched": off["meta"].get("fetched"), "keys": off["meta"]["keys"], "foods": off["foods"],
         }]
         print(f"Added {len(off['foods']):,} Open Food Facts products")
+        for why, lst in dropped.items():
+            print(f"  dropped {len(lst):5d} ({why})")
+            import random; random.seed(1)
+            for x in random.sample(lst, min(12, len(lst))): print("      ", x)
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = (HERE / "template.html").read_text(encoding="utf-8").replace("/*__CNF_DATA__*/", blob)
     Path(a.out).write_text(html, encoding="utf-8")
