@@ -1,6 +1,27 @@
-Lines read: 1148; activities parsed: 0
+Lines read: 1148; activities parsed: 1111
 Headings:
-
+  Bicycling: 44
+  Conditioning Exercise: 86
+  Dancing: 28
+  Fishing & Hunting: 37
+  Home Activities: 78
+  Home Repair: 37
+  Inactivity: 17
+  Lawn & Garden: 54
+  Miscellaneous: 28
+  Music Playing: 22
+  Occupation: 149
+  Religious Activities: 24
+  Running: 66
+  Self Care: 11
+  Sexual Activity: 3
+  Sports: 156
+  Transportation: 12
+  Video Games: 8
+  Volunteer Activities: 19
+  Walking: 93
+  Water Activities: 87
+  Winter Activities: 52
 
 First 40 raw lines:
 2024 Adult Compendium of Physical Activities
