@@ -14,21 +14,27 @@ os.makedirs("data", exist_ok=True)
 req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (food-diary-tracker data job)"})
 open("/tmp/compendium.pdf", "wb").write(urllib.request.urlopen(req, timeout=120).read())
 
-ROW = re.compile(r"^(?P<head>[A-Za-z][A-Za-z ,&/'-]*?)\s+(?P<code>\d{5})\s+(?P<met>\d{1,2}(?:\.\d+)?)\s+(?P<desc>.+)$")
-rows, raw, unmatched = [], [], []
+rows, raw, bad = [], [], []
+HEAD_OK = re.compile(r"^[A-Za-z][A-Za-z ,&/'-]+$")
 with pdfplumber.open("/tmp/compendium.pdf") as pdf:
     for page in pdf.pages:
-        for line in (page.extract_text() or "").splitlines():
-            line = " ".join(line.split())
-            raw.append(line)
-            m = ROW.match(line)
-            if m:
-                rows.append({"code": m["code"], "heading": m["head"].strip(), "met": float(m["met"]), "desc": m["desc"].strip()})
-            elif rows and line and not re.search(r"Compendium|Page \d|^Major Heading|^Activity Code", line, re.I):
-                unmatched.append(line)
-                if len(line) < 120 and not re.match(r"^\d", line):
-                    rows[-1]["desc"] += " " + line
-
+        raw.extend((page.extract_text() or "").splitlines())
+        for table in page.extract_tables():
+            for cells in table:
+                cells = [" ".join((c or "").split()) for c in cells]
+                if len(cells) < 4:
+                    bad.append(" | ".join(cells)); continue
+                head, code, met, desc = cells[0], cells[1], cells[2], " ".join(cells[3:]).strip()
+                if not re.fullmatch(r"\d{5}", code):
+                    if not re.search(r"Activity Code", code, re.I):
+                        bad.append(" | ".join(cells))
+                    continue
+                try:
+                    m = float(met)
+                except ValueError:
+                    bad.append(" | ".join(cells)); continue
+                rows.append({"code": code, "heading": head, "met": m, "desc": desc})
+unmatched = bad
 seen, out = set(), []
 for r in rows:
     if r["code"] in seen:
