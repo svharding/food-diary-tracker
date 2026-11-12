@@ -169,7 +169,7 @@ tr.sel td { background: var(--surface-2); }
   </div>
 
   <nav class="tabs no-print" role="tablist">
-    <button role="tab" data-view="diary" aria-selected="true">1. Food diary</button>
+    <button role="tab" data-view="diary" aria-selected="true">1. Food &amp; activity diary</button>
     <button role="tab" data-view="results" aria-selected="false">2. Results</button>
     <button role="tab" data-view="about" aria-selected="false">How to read this</button>
   </nav>
@@ -182,24 +182,28 @@ tr.sel td { background: var(--surface-2); }
         <label class="f">Name or ID (optional)
           <input type="text" id="setLabel" placeholder="e.g. student number" maxlength="60">
         </label>
-        <label class="f">Reference group (for DRIs)
-          <select id="setGroup">
-            <option value="F1930">Female, 19–30 y</option>
-            <option value="F3150">Female, 31–50 y</option>
-            <option value="M1930">Male, 19–30 y</option>
-            <option value="M3150">Male, 31–50 y</option>
+        <label class="f">Sex
+          <select id="setSex">
+            <option value="F">Female</option>
+            <option value="M">Male</option>
           </select>
+        </label>
+        <label class="f">Age, years
+          <input type="number" id="setAge" min="19" max="100" step="1" placeholder="19–50" style="width:90px">
+        </label>
+        <label class="f">Height, cm
+          <input type="number" id="setHeight" min="120" max="230" step="0.5" placeholder="e.g. 170" style="width:100px">
         </label>
         <label class="f">Number of days
           <select id="setDays">
             <option value="3">3</option><option value="4">4</option><option value="5">5</option>
           </select>
         </label>
-        <label class="f">Body weight, kg (optional)
-          <input type="number" id="setWeight" min="30" max="250" step="0.1" placeholder="for protein g/kg" style="width:150px">
+        <label class="f">Weight, kg
+          <input type="number" id="setWeight" min="30" max="250" step="0.1" placeholder="e.g. 65" style="width:100px">
         </label>
       </div>
-      <p class="small muted" style="margin:8px 0 0">Pregnancy, lactation and other ages are not included in this version.</p>
+      <p class="small muted" style="margin:8px 0 0"><span id="groupNote"></span> Age, height and weight are needed for energy expenditure and protein. Pregnancy and lactation are not included in this version.</p>
     </div>
 
     <div class="card">
@@ -247,6 +251,50 @@ tr.sel td { background: var(--surface-2); }
       <p class="muted small" id="noEntries">No foods yet. Search above to add one.</p>
     </div>
 
+    <div class="card" id="actCard">
+      <h2 id="actTitle">Activities for Day 1</h2>
+      <p class="small muted" style="margin-top:0">Log the whole day, including sleep, so it adds up to 24 hours. Pick a category or search.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="actCat" aria-label="Activity category" style="flex:0 1 220px"></select>
+        <input type="search" id="actSearch" placeholder="Search activities, e.g. hockey, walking, class" autocomplete="off" style="flex:1;min-width:160px">
+      </div>
+      <label class="small muted" style="display:block;margin-top:6px"><input type="checkbox" id="actAll"> Search all activities in the 2024 Adult Compendium</label>
+      <ul class="results hidden" id="actResults" role="listbox"></ul>
+      <div class="picker hidden" id="actPicker">
+        <div class="name" id="actPickName"></div>
+        <div class="row">
+          <label class="f">Hours
+            <input type="number" id="actH" min="0" max="24" step="1" value="0" style="width:80px">
+          </label>
+          <label class="f">Minutes
+            <input type="number" id="actM" min="0" max="59" step="5" value="30" style="width:80px">
+          </label>
+          <button class="btn primary" id="actAdd">Add</button>
+          <button class="btn" id="actCancel">Cancel</button>
+        </div>
+        <div class="small muted" id="actPreview" style="margin-top:6px"></div>
+      </div>
+      <div class="tablewrap">
+        <table id="actEntries" style="margin-top:10px">
+          <thead><tr><th>Activity</th><th class="num">Time</th><th class="num">MET</th><th class="num">kcal</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted small" id="noActs">No activities yet.</p>
+      <div id="actTotal" class="small" style="margin-top:8px"></div>
+      <div class="row hidden" id="fillRow" style="margin-top:8px">
+        <label class="f">Fill the remaining time with
+          <select id="fillWith">
+            <option value="07030">Sleeping</option>
+            <option value="07021">Sitting quietly</option>
+            <option value="09055">Sitting: talking, phone, computer or texting</option>
+            <option value="09050">Standing: talking, phone, computer or texting</option>
+          </select>
+        </label>
+        <button class="btn" id="fillBtn">Fill</button>
+      </div>
+    </div>
+
     <div class="card no-print">
       <h2>Your file</h2>
       <div class="row">
@@ -267,6 +315,13 @@ tr.sel td { background: var(--surface-2); }
     <div class="card">
       <h2>Energy</h2>
       <div class="stats" id="energyStats"></div>
+    </div>
+
+    <div class="card">
+      <h2>Energy expenditure and requirement</h2>
+      <div class="stats" id="eeStats"></div>
+      <div class="tablewrap"><table id="eeTable" style="margin-top:10px"></table></div>
+      <div id="eeNotes" class="small" style="margin-top:8px"></div>
     </div>
 
     <div class="card">
@@ -332,6 +387,15 @@ tr.sel td { background: var(--surface-2); }
         <li>Records are affected by under-reporting, portion estimation errors and changing what you eat because you are recording it.</li>
         <li>Supplements are not included.</li>
       </ul>
+      <h3>Energy expenditure</h3>
+      <ul>
+        <li><strong>Resting energy</strong> (basal energy expenditure) is estimated with the Mifflin-St Jeor equation from sex, age, height and weight.</li>
+        <li>Each activity has a <strong>MET</strong> value from the 2024 Adult Compendium of Physical Activities: how many times resting energy that activity uses. Energy for an activity = MET × resting energy per hour × hours.</li>
+        <li><strong>Physical activity level (PAL)</strong> = total energy expenditure for the day ÷ resting energy. It is only calculated for days with a full 24 hours logged.</li>
+        <li>Your average PAL places you in one of four categories used by the 2023 Dietary Reference Intakes for energy: inactive (1.0 to under 1.53), low active (1.53 to under 1.68), active (1.68 to under 1.85) and very active (1.85 to under 2.5).</li>
+        <li>The <strong>Estimated Energy Requirement (EER)</strong> is then calculated with the 2023 equation for your sex and PAL category. It predicts the intake that keeps body weight stable; it is not a target for weight loss or gain.</li>
+        <li>Comparing your reported intake with your EER is a check on the food record. Intakes well below the EER are common because people tend to under-report what they eat.</li>
+      </ul>
       <h3>About the food data</h3>
       <ul>
         <li>Nutrient values come from Health Canada's Canadian Nutrient File (CNF), per 100 g of edible portion, scaled by the measure you choose.</li>
@@ -345,6 +409,9 @@ tr.sel td { background: var(--surface-2); }
       <ul class="small">
         <li>Health Canada. Canadian Nutrient File. Open Government Licence – Canada.</li>
         <li>Open Food Facts: © Open Food Facts contributors, Open Database License (ODbL). openfoodfacts.org</li>
+        <li>Herrmann SD, Willis EA, Ainsworth BE, et al. 2024 Adult Compendium of Physical Activities: a third update of the energy costs of human activities. J Sport Health Sci. 2024;13(1):6–12. pacompendium.com</li>
+        <li>National Academies of Sciences, Engineering, and Medicine. Dietary Reference Intakes for Energy. Washington, DC: The National Academies Press; 2023. doi:10.17226/26818</li>
+        <li>Mifflin MD, St Jeor ST, Hill LA, et al. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr. 1990;51(2):241–7.</li>
         <li>Health Canada. Dietary Reference Intakes tables: reference values for vitamins, elements and macronutrients.</li>
       </ul>
     </div>
@@ -474,7 +541,7 @@ if (DATA.meta.demo) document.getElementById('demoBanner').classList.remove('hidd
 /* ================= State ================= */
 const STORE_KEY = 'nutrient-tracker-diary-v1';
 const MEALS = ['Breakfast','Lunch','Dinner','Snack'];
-let state = {label:'', group:'F1930', ndays:3, weight:null, days:[[],[],[],[],[]], dataVersion: DATA.meta.version || ''};
+let state = {label:'', sex:'F', age:null, height:null, ndays:3, weight:null, days:[[],[],[],[],[]], acts:[[],[],[],[],[]], dataVersion: DATA.meta.version || ''};
 let curDay = 0;
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable; diary file still works */ }
@@ -486,10 +553,15 @@ function load() {
   } catch (e) { /* ignore */ }
 }
 function applyLoaded(s) {
-  state = Object.assign({label:'', group:'F1930', ndays:3, weight:null, days:[]}, s);
+  state = Object.assign({label:'', sex:'F', age:null, height:null, ndays:3, weight:null, days:[], acts:[]}, s);
+  if (!s.sex && s.group) state.sex = String(s.group)[0] === 'M' ? 'M' : 'F';   // older diary files
+  if (state.sex !== 'M') state.sex = 'F';
+  delete state.group;
   while (state.days.length < 5) state.days.push([]);
   state.days = state.days.slice(0,5).map(d => (d||[]).filter(e => e && FOODS.has(e.fid) && e.g > 0));
-  if (!GROUP_LABEL[state.group]) state.group = 'F1930';
+  if (!Array.isArray(state.acts)) state.acts = [];
+  while (state.acts.length < 5) state.acts.push([]);
+  state.acts = state.acts.slice(0,5).map(d => (d||[]).filter(a => a && ACTS.has(a.code) && a.h > 0));
   state.ndays = Math.min(5, Math.max(3, +state.ndays || 3));
 }
 
@@ -526,13 +598,23 @@ function showView(v) {
 /* ================= Setup ================= */
 function renderSetup() {
   $('setLabel').value = state.label || '';
-  $('setGroup').value = state.group;
+  $('setSex').value = state.sex;
+  $('setAge').value = state.age || '';
+  $('setHeight').value = state.height || '';
+  updateGroupNote();
   $('setDays').value = String(state.ndays);
   $('setWeight').value = state.weight || '';
 }
 $('setLabel').addEventListener('input', e => { state.label = e.target.value; save(); });
-$('setGroup').addEventListener('change', e => { state.group = e.target.value; save(); });
-$('setWeight').addEventListener('input', e => { const w = parseFloat(e.target.value); state.weight = (w >= 30 && w <= 250) ? w : null; save(); });
+$('setSex').addEventListener('change', e => { state.sex = e.target.value; save(); updateGroupNote(); renderActs(); });
+$('setAge').addEventListener('input', e => { const a = parseInt(e.target.value, 10); state.age = (a >= 19 && a <= 100) ? a : null; save(); updateGroupNote(); renderActs(); });
+$('setHeight').addEventListener('input', e => { const h = parseFloat(e.target.value); state.height = (h >= 120 && h <= 230) ? h : null; save(); renderActs(); });
+function curGroup() { return (state.sex === 'M' ? 'M' : 'F') + (state.age && state.age > 30 ? '3150' : '1930'); }
+function updateGroupNote() {
+  const g = curGroup();
+  $('groupNote').textContent = 'Nutrient reference values: ' + GROUP_LABEL[g] + (state.age && state.age > 50 ? ' (closest group available; this version covers ages 19–50).' : '.') ;
+}
+$('setWeight').addEventListener('input', e => { const w = parseFloat(e.target.value); state.weight = (w >= 30 && w <= 250) ? w : null; save(); renderActs(); });
 $('setDays').addEventListener('change', e => {
   const n = +e.target.value;
   const lost = state.days.slice(n).reduce((a,d)=>a+d.length, 0);
@@ -577,7 +659,7 @@ function renderEntries() {
     tb.append(el('tr', null, el('td', {colspan:3}, el('strong', null, 'Day total')), el('td', {class:'num'}, el('strong', null, fmt(dayKcal(curDay),0))), el('td')));
   }
 }
-function renderDiary() { renderDayTabs(); renderEntries(); }
+function renderDiary() { renderDayTabs(); renderEntries(); renderActs(); }
 
 /* ---- search ---- */
 let searchHits = [], activeHit = -1, picked = null;
@@ -728,9 +810,164 @@ let clearArmed = false;
 $('clearAll').addEventListener('click', e => {
   if (!clearArmed) { clearArmed = true; e.target.textContent = 'Tap again to clear'; setTimeout(()=>{ clearArmed = false; e.target.textContent = 'Clear everything'; }, 3000); return; }
   clearArmed = false; e.target.textContent = 'Clear everything';
-  state.days = [[],[],[],[],[]]; save(); curDay = 0; renderDiary(); toast('Diary cleared');
+  state.days = [[],[],[],[],[]]; state.acts = [[],[],[],[],[]]; save(); curDay = 0; renderDiary(); toast('Diary cleared');
 });
 $('goResults').addEventListener('click', () => showView('results'));
+
+/* ================= Activities (2024 Adult Compendium) ================= */
+const ACTS = new Map();          // code -> {code, met, heading, desc, label}
+const CURATED = [];              // [{group, items:[code]}]
+(function prepActs(){
+  const A = DATA.activities || {all: [], curated: []};
+  for (const [code, met, heading, desc] of A.all) ACTS.set(code, {code, met, heading, desc, label: desc});
+  for (const [group, items] of A.curated) {
+    const codes = [];
+    for (const [code, label] of items) { const a = ACTS.get(code); if (a) { a.label = label; a.curated = true; codes.push(code); } }
+    CURATED.push({group, items: codes});
+  }
+})();
+if (!ACTS.size) $('actCard').classList.add('hidden');
+
+/* Energy model */
+function bee() {          // Mifflin-St Jeor resting energy, kcal/day
+  const {sex, age, height, weight} = state;
+  if (!(age && height && weight)) return null;
+  return 10 * weight + 6.25 * height - 5 * age + (sex === 'M' ? 5 : -161);
+}
+// 2023 NASEM DRI for Energy, Table S-1: TEE (kcal/d), adults 19 y and over; age y, height cm, weight kg
+const EER_EQ = {
+  M: {inactive:[753.07,-10.83,6.50,14.10], low:[581.47,-10.83,8.30,14.94], active:[1004.82,-10.83,6.52,15.91], very:[-517.88,-10.83,15.61,19.11]},
+  F: {inactive:[584.90,-7.01,5.72,11.71], low:[575.77,-7.01,6.60,12.14], active:[710.25,-7.01,6.54,12.34], very:[511.83,-7.01,9.07,12.56]}
+};
+const PAL_LABEL = {inactive:'Inactive', low:'Low active', active:'Active', very:'Very active'};
+function palCategory(pal) { return pal < 1.53 ? 'inactive' : pal < 1.68 ? 'low' : pal < 1.85 ? 'active' : 'very'; }
+function eer(cat) {
+  const {sex, age, height, weight} = state;
+  if (!(age && height && weight)) return null;
+  const [a, b, c, d] = EER_EQ[sex === 'M' ? 'M' : 'F'][cat];
+  return a + b * age + c * height + d * weight;
+}
+function actKcal(a, B) { const x = ACTS.get(a.code); return B ? x.met * (B / 24) * a.h : null; }
+function dayActHours(d) { return state.acts[d].reduce((s, a) => s + a.h, 0); }
+function dayEE(d) {      // {hours, tee, pal, complete}
+  const B = bee(), h = dayActHours(d);
+  const complete = Math.abs(h - 24) <= 0.25;
+  if (!B || !complete) return {hours: h, tee: null, pal: null, complete};
+  const tee = state.acts[d].reduce((s, a) => s + actKcal(a, B), 0) * 24 / h;   // scale tiny rounding to exactly 24 h
+  return {hours: h, tee, pal: tee / B, complete};
+}
+function fmtHM(h) { const m = Math.round(h * 60), H = Math.floor(m / 60), M = m % 60; return (H ? H + ' h' : '') + (H && M ? ' ' : '') + (M ? M + ' min' : '') || '0 min'; }
+
+/* Activity UI */
+(function initActCat(){
+  const sel = $('actCat');
+  sel.append(el('option', {value: ''}, 'Choose a category…'));
+  CURATED.forEach((c, i) => sel.append(el('option', {value: String(i)}, c.group)));
+})();
+let actHits = [], actPicked = null, actActive = -1;
+function showActList(list) {
+  const ul = $('actResults'); ul.textContent = ''; actHits = list; actActive = -1;
+  if (!list.length) { ul.append(el('li', {class:'muted'}, 'No match. Try another word, or tick "Search all activities".')); }
+  list.forEach(a => ul.append(el('li', {role:'option', onclick: () => pickAct(a)},
+    a.label, ' ', el('span', {class:'grp', text: '· ' + a.met.toFixed(1) + ' MET' + (a.curated ? '' : ' · ' + a.heading)}))));
+  ul.classList.remove('hidden');
+}
+$('actCat').addEventListener('change', e => {
+  $('actSearch').value = '';
+  if (e.target.value === '') { $('actResults').classList.add('hidden'); return; }
+  showActList(CURATED[+e.target.value].items.map(c => ACTS.get(c)));
+});
+function searchActs() {
+  const q = $('actSearch').value.trim().toLowerCase();
+  if (q.length < 2) { $('actResults').classList.add('hidden'); return; }
+  $('actCat').value = '';
+  const toks = q.split(/\s+/).filter(Boolean);
+  const all = $('actAll').checked;
+  const out = [];
+  for (const a of ACTS.values()) {
+    if (!all && !a.curated) continue;
+    const text = (a.label + ' ' + a.desc + ' ' + a.heading).toLowerCase();
+    if (!toks.every(t => text.includes(t))) continue;
+    let score = a.label.length + (a.curated ? -100 : 0);
+    if (a.label.toLowerCase().startsWith(toks[0])) score -= 50;
+    out.push([score, a]);
+  }
+  out.sort((x, y) => x[0] - y[0]);
+  showActList(out.slice(0, 50).map(x => x[1]));
+}
+$('actSearch').addEventListener('input', () => { clearTimeout(searchActs._t); searchActs._t = setTimeout(searchActs, 120); });
+$('actAll').addEventListener('change', searchActs);
+function pickAct(a) {
+  actPicked = a;
+  $('actResults').classList.add('hidden');
+  $('actPickName').textContent = a.label + ' (' + a.met.toFixed(1) + ' MET)';
+  const left = Math.max(0, 24 - dayActHours(curDay));
+  const def = a.code === '07030' ? Math.min(8, left) : Math.min(0.5, left || 0.5);
+  $('actH').value = String(Math.floor(def));
+  $('actM').value = String(Math.round((def % 1) * 60));
+  $('actPicker').classList.remove('hidden');
+  updateActPreview();
+  $('actH').focus();
+}
+function actHoursInput() {
+  const h = parseFloat($('actH').value) || 0, m = parseFloat($('actM').value) || 0;
+  return Math.max(0, h + m / 60);
+}
+function updateActPreview() {
+  const h = actHoursInput(), B = bee();
+  $('actAdd').disabled = !(h > 0);
+  $('actPreview').textContent = !(h > 0) ? 'Enter a time greater than 0.' :
+    '= ' + fmtHM(h) + (B ? ' · about ' + fmt(actPicked.met * B / 24 * h, 0) + ' kcal' : ' · enter age, height and weight above to see kcal');
+}
+$('actH').addEventListener('input', updateActPreview);
+$('actM').addEventListener('input', updateActPreview);
+$('actAdd').addEventListener('click', addAct);
+$('actM').addEventListener('keydown', e => { if (e.key === 'Enter') addAct(); });
+$('actCancel').addEventListener('click', () => { actPicked = null; $('actPicker').classList.add('hidden'); });
+function addAct() {
+  const h = actHoursInput(); if (!(h > 0) || !actPicked) return;
+  state.acts[curDay].push({code: actPicked.code, h: Math.round(h * 1000) / 1000});
+  actPicked = null; $('actPicker').classList.add('hidden'); $('actSearch').value = '';
+  save(); renderActs(); toast('Activity added to Day ' + (curDay + 1));
+}
+$('fillBtn').addEventListener('click', () => {
+  const left = 24 - dayActHours(curDay);
+  if (left <= 0) return;
+  state.acts[curDay].push({code: $('fillWith').value, h: Math.round(left * 1000) / 1000});
+  save(); renderActs();
+});
+function renderActs() {
+  if (!ACTS.size) return;
+  $('actTitle').textContent = 'Activities for Day ' + (curDay + 1);
+  const tb = $('actEntries').querySelector('tbody'); tb.textContent = '';
+  const list = state.acts[curDay], B = bee();
+  $('noActs').classList.toggle('hidden', list.length > 0);
+  $('actEntries').classList.toggle('hidden', list.length === 0);
+  list.forEach((a, i) => {
+    const x = ACTS.get(a.code);
+    tb.append(el('tr', null,
+      el('td', {title: x.desc}, x.label),
+      el('td', {class:'num', text: fmtHM(a.h)}),
+      el('td', {class:'num', text: x.met.toFixed(1)}),
+      el('td', {class:'num', text: B ? fmt(actKcal(a, B), 0) : '–'}),
+      el('td', {class:'num'}, el('button', {class:'btn small', 'aria-label':'Remove ' + x.label, onclick: () => { state.acts[curDay].splice(i, 1); save(); renderActs(); }}, 'Remove'))));
+  });
+  const h = dayActHours(curDay), E = dayEE(curDay);
+  const T = $('actTotal'); T.textContent = '';
+  const left = 24 - h;
+  if (list.length) {
+    T.append(el('strong', null, 'Logged: ' + fmtHM(h) + ' of 24 h. '));
+    if (Math.abs(left) <= 0.25) {
+      T.append(B ? 'Estimated expenditure: ' + fmt(E.tee, 0) + ' kcal · PAL ' + E.pal.toFixed(2) + ' (' + PAL_LABEL[palCategory(E.pal)] + ')' :
+                   'Enter age, height and weight above to calculate energy expenditure.');
+    } else if (left > 0) {
+      T.append(el('span', {class:'cov-low', text: fmtHM(left) + ' still to log.'}));
+    } else {
+      T.append(el('span', {class:'st-crit', text: 'That is ' + fmtHM(-left) + ' more than 24 hours. Check your times.'}));
+    }
+  }
+  $('fillRow').classList.toggle('hidden', !(left > 0.25 && list.length));
+}
 
 /* ================= Results ================= */
 function compute() {
@@ -765,7 +1002,7 @@ function statusFor(k, v, r) {
 let selNut = null;
 function renderResults() {
   const R = compute();
-  const g = state.group;
+  const g = curGroup();
   // header
   const H = $('resHeader'); H.textContent = '';
   H.append(el('h2', {text: 'Results' + (state.label ? ' – ' + state.label : '')}),
@@ -794,6 +1031,8 @@ function renderResults() {
   E.append(stat(R.n ? fmt(R.avg[NIDX.energy],0) : '–', 'Average kcal/day'));
   E.append(stat(R.n ? fmt(Math.min(...kcs),0) + '–' + fmt(Math.max(...kcs),0) : '–', 'Lowest–highest day (kcal)'));
   E.append(stat(R.n ? fmt(R.avg[NIDX.energy]*4.184/1000, 1) : '–', 'Average MJ/day'));
+  // energy expenditure and requirement
+  renderEE(R);
   // macros
   renderMacros(R);
   // nutrients
@@ -819,6 +1058,52 @@ function renderResults() {
   }
   if (selNut) showSources(selNut, true); else $('sourcesPanel').classList.add('hidden');
   renderDayTable(R);
+}
+function renderEE(R) {
+  const S = $('eeStats'), T = $('eeTable'), N = $('eeNotes');
+  S.textContent = ''; T.textContent = ''; N.textContent = '';
+  const B = bee();
+  if (!B) { N.append(el('p', {class:'muted', text:'Enter sex, age, height and weight on the diary tab to estimate energy expenditure and requirement.'})); return; }
+  const days = [];
+  for (let d = 0; d < state.ndays; d++) days.push(Object.assign({d}, dayEE(d)));
+  const done = days.filter(x => x.complete && x.tee);
+  const avgPal = done.length ? done.reduce((s, x) => s + x.pal, 0) / done.length : null;
+  const avgTee = done.length ? done.reduce((s, x) => s + x.tee, 0) / done.length : null;
+  const cat = avgPal ? palCategory(avgPal) : null;
+  const E = cat ? eer(cat) : null;
+  const ei = R.n ? R.avg[NIDX.energy] : null;
+  S.append(stat(fmt(B, 0), 'Resting energy, kcal/day (Mifflin-St Jeor)'));
+  S.append(stat(avgTee ? fmt(avgTee, 0) : '–', 'Expenditure from activity log, kcal/day'));
+  S.append(stat(avgPal ? avgPal.toFixed(2) + ' · ' + PAL_LABEL[cat] : '–', 'Physical activity level (PAL)'));
+  S.append(stat(E ? fmt(E, 0) : '–', 'Estimated Energy Requirement, kcal/day (2023 DRI)'));
+  S.append(stat(ei && E ? Math.round(ei / E * 100) + '%' : '–', 'Reported intake as % of EER'));
+  T.append(el('thead', null, el('tr', null, el('th', {text:'Day'}), el('th', {class:'num', text:'Time logged'}),
+    el('th', {class:'num', text:'Expenditure (kcal)'}), el('th', {class:'num', text:'PAL'}), el('th', {text:'Category'}), el('th', {class:'num', text:'Intake (kcal)'}))));
+  const tb = el('tbody');
+  for (const x of days) {
+    const kc = state.days[x.d].length ? state.days[x.d].reduce((a, e) => a + (entryNutrient(e, NIDX.energy) || 0), 0) : null;
+    tb.append(el('tr', null, el('td', {text:'Day ' + (x.d + 1)}),
+      el('td', {class:'num' + (x.complete ? '' : ' cov-low'), text: x.hours ? fmtHM(x.hours) : '–'}),
+      el('td', {class:'num', text: x.tee ? fmt(x.tee, 0) : '–'}),
+      el('td', {class:'num', text: x.pal ? x.pal.toFixed(2) : '–'}),
+      el('td', {text: x.pal ? PAL_LABEL[palCategory(x.pal)] : (x.hours ? 'Log 24 h' : '')}),
+      el('td', {class:'num', text: kc !== null ? fmt(kc, 0) : '–'})));
+  }
+  T.append(tb);
+  const notes = [];
+  if (!done.length) notes.push('No day has a full 24 hours of activities logged yet, so PAL and EER cannot be calculated.');
+  else if (done.length < days.length) notes.push(`PAL and EER use the ${done.length} day(s) with a full 24 hours logged.`);
+  if (avgPal && avgPal >= 2.5) notes.push('Average PAL is 2.5 or higher, above the range the 2023 equations were built on. Check the activity times; the "very active" equation is used.');
+  if (avgPal && avgPal < 1.0) notes.push('Average PAL is below 1.0, which is not possible over a whole day. Check the activity times.');
+  if (state.age && state.age < 19) notes.push('The equations used here are for adults 19 and over.');
+  if (ei && E) {
+    const r = ei / E;
+    if (r < 0.8) notes.push(`Reported intake is ${Math.round(r * 100)}% of the EER. If body weight is stable, this usually means some food was not recorded (under-reporting is common), or these days were not typical.`);
+    else if (r > 1.2) notes.push(`Reported intake is ${Math.round(r * 100)}% of the EER. Check portion sizes, or whether these days were not typical.`);
+    else notes.push(`Reported intake is ${Math.round(r * 100)}% of the EER, within about 20%. Remember that both numbers are estimates.`);
+  }
+  if (avgTee && E) notes.push(`Your activity log gives ${fmt(avgTee, 0)} kcal/day; the 2023 equation for your PAL category gives ${fmt(E, 0)} kcal/day. The equation is based on doubly labelled water studies and is usually the better estimate; the log shows where your energy goes.`);
+  N.append(el('ul', {class:'warn-list'}, ...notes.map(t => el('li', {text: t}))));
 }
 function stat(v, l) { return el('div', {class:'stat'}, el('div', {class:'v', text:v}), el('div', {class:'l', text:l})); }
 function pbar(pct, name) {
@@ -908,7 +1193,7 @@ function renderDayTable(R) {
 /* ---- export ---- */
 function csvCell(x) { const s = String(x ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; }
 $('dlCsv').addEventListener('click', () => {
-  const R = compute(), g = state.group, rows = [];
+  const R = compute(), g = curGroup(), rows = [];
   rows.push(['Food Diary Nutrient Tracker']);
   rows.push(['Name/ID', state.label]); rows.push(['Reference group', GROUP_LABEL[g]]);
   rows.push(['Days with entries', R.n + ' of ' + state.ndays]); rows.push(['Data', DATA.meta.demo ? 'DEMO placeholder values' : DATA.meta.source + ' ' + (DATA.meta.version||'')]);
@@ -921,6 +1206,30 @@ $('dlCsv').addEventListener('click', () => {
       (v !== null && r.ref) ? Math.round(v/r.ref*100) : '', r.ul ? r.ul + (r.ulFood === false ? ' (not applied to food)' : '') : (r.cdrr ? r.cdrr + ' CDRR' : ''), st ? st.t : '', R.cov[i] === null ? '' : Math.round(R.cov[i]*100)]);
   });
   rows.push([]);
+  {
+    const B = bee();
+    rows.push(['ENERGY EXPENDITURE']);
+    rows.push(['Sex', state.sex === 'M' ? 'Male' : 'Female', 'Age', state.age ?? '', 'Height (cm)', state.height ?? '', 'Weight (kg)', state.weight ?? '']);
+    rows.push(['Resting energy (Mifflin-St Jeor), kcal/d', B ? Math.round(B) : '']);
+    rows.push(['Day', 'Hours logged', 'Expenditure (kcal)', 'PAL', 'PAL category']);
+    const done = [];
+    for (let d = 0; d < state.ndays; d++) {
+      const x = dayEE(d); if (x.tee) done.push(x);
+      rows.push([d + 1, +x.hours.toFixed(2), x.tee ? Math.round(x.tee) : '', x.pal ? +x.pal.toFixed(2) : '', x.pal ? PAL_LABEL[palCategory(x.pal)] : '']);
+    }
+    if (done.length) {
+      const pal = done.reduce((s, x) => s + x.pal, 0) / done.length, cat = palCategory(pal);
+      rows.push(['Average PAL', +pal.toFixed(2), 'Category', PAL_LABEL[cat], 'EER (2023 DRI), kcal/d', Math.round(eer(cat))]);
+    }
+    rows.push([]);
+    rows.push(['ACTIVITY ENTRIES']);
+    rows.push(['Day', 'Compendium code', 'Activity', 'Compendium description', 'MET', 'Hours', 'kcal']);
+    for (let d = 0; d < state.ndays; d++) for (const a of state.acts[d]) {
+      const x = ACTS.get(a.code);
+      rows.push([d + 1, x.code, x.label, x.desc, x.met, +a.h.toFixed(3), B ? Math.round(actKcal(a, B)) : '']);
+    }
+    rows.push([]);
+  }
   rows.push(['FOOD ENTRIES']);
   rows.push(['Day','Meal','Food','Amount','Measure','Grams', ...NUTRIENTS.map(n=>n.name + ' (' + n.unit + ')')]);
   for (let d = 0; d < state.ndays; d++) for (const e of state.days[d]) {

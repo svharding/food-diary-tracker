@@ -275,6 +275,16 @@ def main():
             print(f"  dropped {len(lst):5d} ({why})")
             import random; random.seed(1)
             for x in random.sample(lst, min(12, len(lst))): print("      ", x)
+    comp, cur = HERE / "data" / "compendium_2024.json", HERE / "data" / "activities_curated.json"
+    if comp.exists() and cur.exists():
+        acts = json.loads(comp.read_text(encoding="utf-8"))["activities"]
+        curated = json.loads(cur.read_text(encoding="utf-8"))
+        codes = {x["code"] for x in acts}
+        missing = [c for _, items in curated for c, _ in items if c not in codes]
+        if missing:
+            sys.exit(f"Curated activity codes not in compendium: {missing}")
+        data["activities"] = {"all": [[x["code"], x["met"], x["heading"], x["desc"]] for x in acts], "curated": curated}
+        print(f"Added {len(acts):,} compendium activities ({sum(len(i) for _, i in curated)} curated)")
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = (HERE / "template.html").read_text(encoding="utf-8").replace("/*__CNF_DATA__*/", blob)
     Path(a.out).write_text(html, encoding="utf-8")
