@@ -1,27 +1,6 @@
-Lines read: 1148; activities parsed: 1091
+Lines read: 1148; activities parsed: 0
 Headings:
-  Bicycling: 44
-  Conditioning Exercise: 85
-  Dancing: 21
-  Fishing & Hunting: 37
-  Home Activities: 75
-  Home Repair: 37
-  Inactivity: 17
-  Lawn & Garden: 53
-  Miscellaneous: 28
-  Music Playing: 22
-  Occupation: 142
-  Religious Activities: 24
-  Running: 66
-  Self Care: 11
-  Sexual Activity: 3
-  Sports: 155
-  Transportation: 12
-  Video Games: 8
-  Volunteer Activities: 19
-  Walking: 93
-  Water Activities: 87
-  Winter Activities: 52
+
 
 First 40 raw lines:
 2024 Adult Compendium of Physical Activities
@@ -65,44 +44,5 @@ Bicycling 01244 13.8 Bicycling, stationary, 270-305 watts, very vigorous
 Bicycling 01248 16.3 Bicycling, stationary, >325 watts, very vigorous
 Bicycling 01252 5.5 Bicycling, concentric only, 100 W
 
-Continuation/unmatched lines (55), first 40:
-Resistance (weight lifting - free weight, nautilus or universal-type), power lifting or body building, vigorous effort (Taylor Code
-Conditioning Exercise 02050 6.0
-210)
-Dancing
-03011 6.3 Ballet exercises (plie, tendus, jetes, rond de Jambes, fondus, grand battement, grand adage, sautes, temp Leve's)
-Dancing
-03025 4.5 Ethnic or cultural dancing (e.g. Greek, Middle Eastern, hula, salsa, merengue, bamba y plena, flamenco, belly, and swing)
-Dancing
-03031 9.8 Nightclub or folk dancing, vigorous effort (e.g., nightclub, disco, folk, line dancing, Irish step dancing, polka, contra)
-Dancing ballroom dance, DanceSport competition (modern waltz, tango, Viennese waltz, slow fox, quick step, samba, chacha, rumba,
-03039 13.0
-paso doble, jive)
-Dancing
-03040 3.0 Ballroom, slow, examples: waltz, foxtrot, slow dancing, samba tango, rumba, 19th century dance, mambo, cha cha
-Dancing
-03050 5.5 Anishinaabe Jingle dancing, brisk pace, other traditional American Indian dancing performed by women, moderate effort
-Dancing Caribbean dance (Abakua, Beguine, Bellair, Bongo, Brukin’s, Caribbean Quadrills, Dinki Mini, Gere, Gumbay, Ibo, Jonkonnu,
-03060 3.5
-Kumina, Oreisha, Jambu)
-Cooking or food preparation - standing or sitting or in general (not broken into stand/walk components), manual appliances,
-Home Activities 05050 2.0
-light effort
-Laundry, fold or hang clothes, put clothes in washer or dryer, packing suitcase, washing clothes by hand, implied standing,
-Home Activities 05090 2.3
-light effort
-Standing, packing/unpacking boxes, occasional lifting lightweight household items, loading or unloading items into a car,
-Home Activities 05146 3.8
-moderate effort
-Harvesting Produce, Picking fruit off trees, gleaning fruits, picking fruits/vegetables, climbing ladder to pick fruit, vigorous
-Lawn & Garden 08248 4.5
-effort
-Custodial work, moderate effort (e.g., buffing floors with electric buffer, feathering or sweeping arena floors, mopping, taking
-Occupation 11126 3.8
-out the trash, vaccuming)
-Farming, moderate effort (e.g., feeding animals, chasing cattle by walking and/or horseback, spreading manure, harvesting
-Occupation 11146 4.8
-crops)
-Farming, taking care of animals (e.g., grooming, brushing, shearing sheep, assisting with birthing, medical care, branding),
-Occupation 11192 4.5
-general
+Continuation/unmatched lines (0), first 40:
+
