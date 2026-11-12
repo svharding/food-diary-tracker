@@ -389,9 +389,9 @@ tr.sel td { background: var(--surface-2); }
       </ul>
       <h3>Energy expenditure</h3>
       <ul>
-        <li><strong>Resting energy</strong> (basal energy expenditure) is estimated with the Mifflin-St Jeor equation from sex, age, height and weight.</li>
-        <li>Each activity has a <strong>MET</strong> value from the 2024 Adult Compendium of Physical Activities: how many times resting energy that activity uses. Energy for an activity = MET × resting energy per hour × hours.</li>
-        <li><strong>Physical activity level (PAL)</strong> = total energy expenditure for the day ÷ resting energy. It is only calculated for days with a full 24 hours logged.</li>
+        <li><strong>Basal energy</strong> (basal metabolic rate) is estimated with the Henry (Oxford) equations from sex, age group, height and weight.</li>
+        <li>Each activity has a <strong>MET</strong> value from the 2024 Adult Compendium of Physical Activities: how many times basal energy that activity uses. Energy for an activity = MET × basal energy per hour × hours.</li>
+        <li><strong>Physical activity level (PAL)</strong> = total energy expenditure for the day ÷ basal energy, which works out to the time-weighted average MET for the day. It is only calculated for days with a full 24 hours logged.</li>
         <li>Your average PAL places you in one of four categories used by the 2023 Dietary Reference Intakes for energy: inactive (1.0 to under 1.53), low active (1.53 to under 1.68), active (1.68 to under 1.85) and very active (1.85 to under 2.5).</li>
         <li>The <strong>Estimated Energy Requirement (EER)</strong> is then calculated with the 2023 equation for your sex and PAL category. It predicts the intake that keeps body weight stable; it is not a target for weight loss or gain.</li>
         <li>Comparing your reported intake with your EER is a check on the food record. Intakes well below the EER are common because people tend to under-report what they eat.</li>
@@ -411,7 +411,7 @@ tr.sel td { background: var(--surface-2); }
         <li>Open Food Facts: © Open Food Facts contributors, Open Database License (ODbL). openfoodfacts.org</li>
         <li>Herrmann SD, Willis EA, Ainsworth BE, et al. 2024 Adult Compendium of Physical Activities: a third update of the energy costs of human activities. J Sport Health Sci. 2024;13(1):6–12. pacompendium.com</li>
         <li>National Academies of Sciences, Engineering, and Medicine. Dietary Reference Intakes for Energy. Washington, DC: The National Academies Press; 2023. doi:10.17226/26818</li>
-        <li>Mifflin MD, St Jeor ST, Hill LA, et al. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr. 1990;51(2):241–7.</li>
+        <li>Henry CJK. Basal metabolic rate studies in humans: measurement and development of new equations. Public Health Nutr. 2005;8(7A):1133–52.</li>
         <li>Health Canada. Dietary Reference Intakes tables: reference values for vitamins, elements and macronutrients.</li>
       </ul>
     </div>
@@ -829,10 +829,17 @@ const CURATED = [];              // [{group, items:[code]}]
 if (!ACTS.size) $('actCard').classList.add('hidden');
 
 /* Energy model */
-function bee() {          // Mifflin-St Jeor resting energy, kcal/day
+// Henry (2005) Oxford equations, weight (kg) and height (m), MJ/day. Public Health Nutr 8(7A):1133-52, Table 15.
+const OXFORD = {
+  M: [[30, 0.0600, 1.31, 0.473], [60, 0.0476, 2.26, -0.574], [Infinity, 0.0478, 2.26, -1.07]],
+  F: [[30, 0.0433, 2.57, -1.18], [60, 0.0342, 2.10, -0.0486], [Infinity, 0.0356, 1.76, 0.0448]]
+};
+const KCAL_PER_MJ = 239.006;
+function bee() {          // basal energy expenditure, kcal/day
   const {sex, age, height, weight} = state;
   if (!(age && height && weight)) return null;
-  return 10 * weight + 6.25 * height - 5 * age + (sex === 'M' ? 5 : -161);
+  const [, w, h, c] = OXFORD[sex === 'M' ? 'M' : 'F'].find(r => age < r[0]);
+  return (w * weight + h * (height / 100) + c) * KCAL_PER_MJ;
 }
 // 2023 NASEM DRI for Energy, Table S-1: TEE (kcal/d), adults 19 y and over; age y, height cm, weight kg
 const EER_EQ = {
@@ -1072,7 +1079,7 @@ function renderEE(R) {
   const cat = avgPal ? palCategory(avgPal) : null;
   const E = cat ? eer(cat) : null;
   const ei = R.n ? R.avg[NIDX.energy] : null;
-  S.append(stat(fmt(B, 0), 'Resting energy, kcal/day (Mifflin-St Jeor)'));
+  S.append(stat(fmt(B, 0), 'Basal energy, kcal/day (Henry/Oxford)'));
   S.append(stat(avgTee ? fmt(avgTee, 0) : '–', 'Expenditure from activity log, kcal/day'));
   S.append(stat(avgPal ? avgPal.toFixed(2) + ' · ' + PAL_LABEL[cat] : '–', 'Physical activity level (PAL)'));
   S.append(stat(E ? fmt(E, 0) : '–', 'Estimated Energy Requirement, kcal/day (2023 DRI)'));
@@ -1210,7 +1217,7 @@ $('dlCsv').addEventListener('click', () => {
     const B = bee();
     rows.push(['ENERGY EXPENDITURE']);
     rows.push(['Sex', state.sex === 'M' ? 'Male' : 'Female', 'Age', state.age ?? '', 'Height (cm)', state.height ?? '', 'Weight (kg)', state.weight ?? '']);
-    rows.push(['Resting energy (Mifflin-St Jeor), kcal/d', B ? Math.round(B) : '']);
+    rows.push(['Basal energy (Henry/Oxford equations), kcal/d', B ? Math.round(B) : '']);
     rows.push(['Day', 'Hours logged', 'Expenditure (kcal)', 'PAL', 'PAL category']);
     const done = [];
     for (let d = 0; d < state.ndays; d++) {
