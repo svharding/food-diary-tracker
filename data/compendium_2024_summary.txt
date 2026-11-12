@@ -1,0 +1,108 @@
+Lines read: 1148; activities parsed: 1091
+Headings:
+  Bicycling: 44
+  Conditioning Exercise: 85
+  Dancing: 21
+  Fishing & Hunting: 37
+  Home Activities: 75
+  Home Repair: 37
+  Inactivity: 17
+  Lawn & Garden: 53
+  Miscellaneous: 28
+  Music Playing: 22
+  Occupation: 142
+  Religious Activities: 24
+  Running: 66
+  Self Care: 11
+  Sexual Activity: 3
+  Sports: 155
+  Transportation: 12
+  Video Games: 8
+  Volunteer Activities: 19
+  Walking: 93
+  Water Activities: 87
+  Winter Activities: 52
+
+First 40 raw lines:
+2024 Adult Compendium of Physical Activities
+Major Heading Activity Code MET Value Activity Description
+Bicycling 01003 14.0 Bicycling, mountain, uphill, vigorous
+Bicycling 01004 16.0 Bicycling, mountain, competitive racing
+Bicycling 01008 8.5 Bicycling, BMX
+Bicycling 01009 8.5 Bicycling, mountain, general
+Bicycling 01010 4.0 Bicycling, <10 mph, leisure, to work or for pleasure (Taylor Code 115)
+Bicycling 01011 6.8 Bicycling, to/from work, self selected pace
+Bicycling 01013 5.8 Bicycling, on dirt or farm road, moderate pace
+Bicycling 01014 7.0 Bicycling, general
+Bicycling 01015 4.3 Bicycling, self-selected easy pace
+Bicycling 01016 7.0 Bicycling, self-selected moderate pace
+Bicycling 01017 9.0 Bicycling, self-selected vigorous pace
+Bicycling 01018 3.5 Bicycling, leisure 5.5 mph
+Bicycling 01019 5.8 Bicycling, leisure, 9.4 mph
+Bicycling 01020 6.8 Bicycling, 10-11.9 mph, leisure, slow, light effort
+Bicycling 01030 8.0 Bicycling, 12-13.9 mph, leisure, moderate effort
+Bicycling 01040 10.0 Bicycling, 14-15.9 mph, racing or leisure, fast, vigorous effort
+Bicycling 01050 12.0 Bicycling, 16-19 mph, racing/not drafting or >19 mph drafting, very fast, racing general
+Bicycling 01060 16.8 Bicycling, >20 mph, racing, not drafting
+Bicycling 01065 8.5 Bicycling, 12 mph, seated, hands on brake hoods or bar drops, 80 rpm
+Bicycling 01066 9.0 Bicycling, 12 mph, standing, hands on brake hoods, 60 rpm
+Bicycling 01070 5.0 Unicycling
+Bicycling 01080 6.8 E-bike (electrically assisted) without electronic support
+Bicycling 01084 6.0 E-bike (electrically assisted) with light electronic support
+Bicycling 01088 4.0 E-bike (electrically assisted) with high electronic support
+Bicycling 01200 6.8 Bicycling, stationary, general
+Bicycling 01210 3.5 Bicycling, stationary, 25-30 watts, very light to light effort
+Bicycling 01214 4.0 Bicycling, stationary, 50 watts, light effort
+Bicycling 01216 5.0 Bicycling, stationary, 60 watts, light to moderate effort
+Bicycling 01218 5.8 Bicycling, stationary, 70-80 watts
+Bicycling 01220 6.0 Bicycling, stationary, 90-100 watts, moderate to vigorous
+Bicycling 01224 6.8 Bicycling, stationary, 101-125 watts
+Bicycling 01228 8.0 Bicycling, stationary, 126-150 watts
+Bicycling 01232 10.3 Bicycling, stationary, 151-199 watts
+Bicycling 01236 10.8 Bicycling, stationary, 200-229 watts, vigorous
+Bicycling 01240 12.5 Bicycling, stationary, 230-250 watts, very vigorous
+Bicycling 01244 13.8 Bicycling, stationary, 270-305 watts, very vigorous
+Bicycling 01248 16.3 Bicycling, stationary, >325 watts, very vigorous
+Bicycling 01252 5.5 Bicycling, concentric only, 100 W
+
+Continuation/unmatched lines (55), first 40:
+Resistance (weight lifting - free weight, nautilus or universal-type), power lifting or body building, vigorous effort (Taylor Code
+Conditioning Exercise 02050 6.0
+210)
+Dancing
+03011 6.3 Ballet exercises (plie, tendus, jetes, rond de Jambes, fondus, grand battement, grand adage, sautes, temp Leve's)
+Dancing
+03025 4.5 Ethnic or cultural dancing (e.g. Greek, Middle Eastern, hula, salsa, merengue, bamba y plena, flamenco, belly, and swing)
+Dancing
+03031 9.8 Nightclub or folk dancing, vigorous effort (e.g., nightclub, disco, folk, line dancing, Irish step dancing, polka, contra)
+Dancing ballroom dance, DanceSport competition (modern waltz, tango, Viennese waltz, slow fox, quick step, samba, chacha, rumba,
+03039 13.0
+paso doble, jive)
+Dancing
+03040 3.0 Ballroom, slow, examples: waltz, foxtrot, slow dancing, samba tango, rumba, 19th century dance, mambo, cha cha
+Dancing
+03050 5.5 Anishinaabe Jingle dancing, brisk pace, other traditional American Indian dancing performed by women, moderate effort
+Dancing Caribbean dance (Abakua, Beguine, Bellair, Bongo, Brukin’s, Caribbean Quadrills, Dinki Mini, Gere, Gumbay, Ibo, Jonkonnu,
+03060 3.5
+Kumina, Oreisha, Jambu)
+Cooking or food preparation - standing or sitting or in general (not broken into stand/walk components), manual appliances,
+Home Activities 05050 2.0
+light effort
+Laundry, fold or hang clothes, put clothes in washer or dryer, packing suitcase, washing clothes by hand, implied standing,
+Home Activities 05090 2.3
+light effort
+Standing, packing/unpacking boxes, occasional lifting lightweight household items, loading or unloading items into a car,
+Home Activities 05146 3.8
+moderate effort
+Harvesting Produce, Picking fruit off trees, gleaning fruits, picking fruits/vegetables, climbing ladder to pick fruit, vigorous
+Lawn & Garden 08248 4.5
+effort
+Custodial work, moderate effort (e.g., buffing floors with electric buffer, feathering or sweeping arena floors, mopping, taking
+Occupation 11126 3.8
+out the trash, vaccuming)
+Farming, moderate effort (e.g., feeding animals, chasing cattle by walking and/or horseback, spreading manure, harvesting
+Occupation 11146 4.8
+crops)
+Farming, taking care of animals (e.g., grooming, brushing, shearing sheep, assisting with birthing, medical care, branding),
+Occupation 11192 4.5
+general
