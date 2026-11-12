@@ -14,26 +14,53 @@ os.makedirs("data", exist_ok=True)
 req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0 (food-diary-tracker data job)"})
 open("/tmp/compendium.pdf", "wb").write(urllib.request.urlopen(req, timeout=120).read())
 
+import statistics
 rows, raw, bad = [], [], []
-HEAD_OK = re.compile(r"^[A-Za-z][A-Za-z ,&/'-]+$")
 with pdfplumber.open("/tmp/compendium.pdf") as pdf:
     for page in pdf.pages:
         raw.extend((page.extract_text() or "").splitlines())
-        for table in page.extract_tables():
-            for cells in table:
-                cells = [" ".join((c or "").split()) for c in cells]
-                if len(cells) < 4:
-                    bad.append(" | ".join(cells)); continue
-                head, code, met, desc = cells[0], cells[1], cells[2], " ".join(cells[3:]).strip()
-                if not re.fullmatch(r"\d{5}", code):
-                    if not re.search(r"Activity Code", code, re.I):
-                        bad.append(" | ".join(cells))
-                    continue
-                try:
-                    m = float(met)
-                except ValueError:
-                    bad.append(" | ".join(cells)); continue
-                rows.append({"code": code, "heading": head, "met": m, "desc": desc})
+        words = page.extract_words(keep_blank_chars=False, use_text_flow=False)
+        codes = [w for w in words if re.fullmatch(r"\d{5}", w["text"])]
+        if not codes:
+            continue
+        code_x = statistics.median(w["x0"] for w in codes)
+        code_x1 = statistics.median(w["x1"] for w in codes)
+        mets = [w for w in words if re.fullmatch(r"\d{1,2}\.\d", w["text"]) and code_x1 < w["x0"] < code_x1 + 80]
+        met_x1 = statistics.median(w["x1"] for w in mets) if mets else code_x1 + 40
+        # group words into lines
+        lines = {}
+        for w in words:
+            key = round(w["top"] / 2)
+            lines.setdefault(key, []).append(w)
+        recs, others = [], []
+        for key in sorted(lines):
+            ws = sorted(lines[key], key=lambda w: w["x0"])
+            top = statistics.mean(w["top"] for w in ws)
+            head = " ".join(w["text"] for w in ws if w["x1"] < code_x - 2)
+            code = [w["text"] for w in ws if abs(w["x0"] - code_x) < 6 and re.fullmatch(r"\d{5}", w["text"])]
+            met = [w["text"] for w in ws if code_x1 < w["x0"] and w["x1"] <= met_x1 + 6 and re.fullmatch(r"\d{1,2}(\.\d+)?", w["text"])]
+            desc = " ".join(w["text"] for w in ws if w["x0"] > met_x1 + 2)
+            full = " ".join(w["text"] for w in ws)
+            if re.search(r"Major Heading|Activity Code|Adult Compendium|Page \d", full):
+                continue
+            if code and met:
+                recs.append({"top": top, "code": code[0], "met": float(met[0]), "head": [head] if head else [], "desc": [(top, desc)] if desc else []})
+            else:
+                others.append((top, head, desc))
+        for top, head, desc in others:
+            if not recs:
+                continue
+            r = min(recs, key=lambda r: abs(r["top"] - top))
+            if abs(r["top"] - top) > 22:
+                bad.append(f"{head} | {desc}"); continue
+            if desc:
+                r["desc"].append((top, desc))
+            if head:
+                r["head"].append(head)
+        for r in recs:
+            heads = [h for h in r["head"] if h]
+            rows.append({"code": r["code"], "heading": " ".join(dict.fromkeys(heads)), "met": r["met"],
+                         "desc": " ".join(d for _, d in sorted(r["desc"]))})
 unmatched = bad
 seen, out = set(), []
 for r in rows:
